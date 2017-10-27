@@ -1,0 +1,87 @@
+name:                auth0
+version:             0.1.0.0
+synopsis:            Auth0 API
+description:         An interface to https://auth0.com
+homepage:            https://github.com/alasconnect/auth0
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Brian Jones
+maintainer:          bcj@alasconnect.com
+copyright:           2017 AlasConnect LLC
+category:            Web
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Auth0
+                     , Auth0.Request
+                     , Auth0.Types
+                     , Auth0.Authentication
+                     , Auth0.Authentication.Login
+                     , Auth0.Authentication.Logout
+                     , Auth0.Authentication.Passwordless
+                     , Auth0.Authentication.Signup
+                     , Auth0.Authentication.ChangePassword
+                     , Auth0.Authentication.UserProfile
+                     , Auth0.Authentication.SAML
+                     , Auth0.Authentication.WS
+                     , Auth0.Authentication.AccountLinking
+                     , Auth0.Authentication.Impersonation
+                     , Auth0.Authentication.AuthorizeClient
+                     , Auth0.Authentication.GetToken
+                     , Auth0.Authentication.RevokeRefreshToken
+                     , Auth0.Management
+                     , Auth0.Management.ClientGrants
+                     , Auth0.Management.Clients
+                     , Auth0.Management.Connections
+                     , Auth0.Management.DeviceCredentials
+                     , Auth0.Management.Grants
+                     , Auth0.Management.Logs
+                     , Auth0.Management.ResourceServers
+                     , Auth0.Management.Rules
+                     , Auth0.Management.RulesConfigs
+                     , Auth0.Management.UserBlocks
+                     , Auth0.Management.Users
+                     , Auth0.Management.UsersByEmail
+                     , Auth0.Management.Blacklists
+                     , Auth0.Management.Emails
+                     , Auth0.Management.Guardian
+                     , Auth0.Management.Jobs
+                     , Auth0.Management.Stats
+                     , Auth0.Management.Tenants
+                     , Auth0.Management.Tickets
+  build-depends:       aeson
+                     , base >= 4.9 && <= 4.10
+                     , bytestring
+                     , containers
+                     , exceptions
+                     , http-conduit
+                     , http-types
+                     , mtl
+                     , tagged
+                     , text
+                     , transformers
+  hs-source-dirs:      src
+  ghc-options:         -Wall -j
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
+
+test-suite auth0-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       auth0
+                     , base >= 4.9 && <= 4.10
+                     , bytestring
+                     , hspec
+                     , random
+                     , tagged
+                     , text
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
+
+source-repository head
+  type:     git
+  location: git@github.com:alasconnect/auth0.git
