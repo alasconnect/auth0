@@ -1,0 +1,47 @@
+name:                auth0
+version:             0.1.0.0
+synopsis:            Auth0 API
+description:         An API to interface with https://auth0.com
+homepage:            https://github.com/alasconnect/auth0
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Brian Jones
+maintainer:          bcj@alasconnect.com
+copyright:           2017 AlasConnect LLC
+category:            Web
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Auth0
+                     , Auth0.Request
+                     , Auth0.Types
+                     , Auth0.Authentication.Login
+                     , Auth0.Authentication.Logout
+                     , Auth0.Authentication.Passwordless
+                     , Auth0.Authentication.Signup
+                     , Auth0.Authentication.ChangePassword
+                     , Auth0.Authentication.UserProfile
+                     , Auth0.Authentication.SAML
+                     , Auth0.Authentication.WS
+                     , Auth0.Authentication.AccountLinking
+                     , Auth0.Authentication.Impersonation
+                     , Auth0.Authentication.AuthorizeClient
+                     , Auth0.Authentication.GetToken
+                     , Auth0.Authentication.RevokeRefreshToken
+  build-depends:       aeson
+                     , base
+                     , bytestring
+                     , containers
+                     , exceptions
+                     , http-conduit
+                     , http-types
+                     , mtl
+                     , tagged
+                     , text
+                     , transformers
+  hs-source-dirs:      src
+  ghc-options:         -Wall -j -O0
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
