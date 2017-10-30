@@ -9,7 +9,6 @@ import Data.Aeson.Types
 import Data.Text
 import GHC.Generics
 ---------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 ---------------------------------------------------------------------------------
 

@@ -8,7 +8,6 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Aeson.Types
-import Data.ByteString (ByteString)
 import Data.Text
 import Data.Map
 import GHC.Generics
@@ -49,9 +48,9 @@ instance ToJSON GetCodeOrLink where
 
 runGetCodeOrLink
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> GetCodeOrLink -> m (Int, Maybe ())
+  => Host -> GetCodeOrLink -> m (Int, Maybe ())
 runGetCodeOrLink h o =
-  let api = API "POST" "/passwordless/start"
+  let api = API Post "/passwordless/start"
   in execRequest h api () (Just o) Nothing
 
 -- POST /oauth/ro
@@ -72,7 +71,7 @@ instance ToJSON AuthenticateUser where
 
 runAuthenticateUser
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> AuthenticateUser -> m (Int, Maybe ())
+  => Host -> AuthenticateUser -> m (Int, Maybe ())
 runAuthenticateUser h o =
-  let api = API "POST" "/oauth/ro"
+  let api = API Post "/oauth/ro"
   in execRequest h api () (Just o) Nothing

@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Auth0.Types where
 
@@ -9,12 +11,18 @@ import Data.Text
 import Data.Tagged
 import GHC.Generics
 ---------------------------------------------------------------------------------
+import Auth0.Request
+---------------------------------------------------------------------------------
 
+---------------------------------------------------------------------------------
 data ClientIdTag
 type ClientId = Tagged ClientIdTag Text
 
 mkClientId :: Text -> ClientId
 mkClientId = Tagged
+
+instance ToField ClientId where
+  toField t v = (t, (Just . untag) v)
 
 data ClientSecretTag
 type ClientSecret = Tagged ClientSecretTag Text
@@ -67,6 +75,9 @@ data ResponseType
 instance ToJSON ResponseType where
   toJSON Code  = "code"
   toJSON Token = "token"
+
+instance ToField ResponseType where
+  toField t v = (t, (Just . pack . show . encode) v)
 
 data GrantType
   = Password

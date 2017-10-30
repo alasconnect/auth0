@@ -7,7 +7,6 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Aeson.Types
-import Data.ByteString (ByteString)
 import Data.Text
 import GHC.Generics
 ---------------------------------------------------------------------------------
@@ -36,8 +35,8 @@ instance FromJSON UserProfile where
 
 runUserProfile
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> m (Int, Maybe UserProfile)
+  => Host -> m (Int, Maybe UserProfile)
 runUserProfile h =
-  let api = API "GET" "/userinfo"
+  let api = API Get "/userinfo"
       hdr = [("Authorization", "Bearer ")]
   in execRequest h api () () (Just hdr)

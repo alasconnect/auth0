@@ -12,7 +12,6 @@ import Data.Monoid ((<>))
 import Data.Tagged
 import Data.Text
 import Data.Text.Encoding
-import Data.ByteString (ByteString)
 import GHC.Generics
 ---------------------------------------------------------------------------------
 import Auth0.Request
@@ -50,8 +49,8 @@ instance ToJSON Impersonate where
 
 runImpersonate
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> UserId -> Impersonate -> m (Int, Maybe Text)
+  => Host -> UserId -> Impersonate -> m (Int, Maybe Text)
 runImpersonate h uid o =
-  let api = API "POST" ("/users/" <> (encodeUtf8 . untag) uid <> "/impersonate")
+  let api = API Post ("/users/" <> (encodeUtf8 . untag) uid <> "/impersonate")
       hdr = [("Authorization", "Bearer ")]
   in execRequest h api () o (Just hdr)

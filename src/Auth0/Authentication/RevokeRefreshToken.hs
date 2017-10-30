@@ -7,7 +7,6 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Aeson.Types
-import Data.ByteString (ByteString)
 import Data.Text
 import GHC.Generics
 ---------------------------------------------------------------------------------
@@ -30,7 +29,7 @@ instance ToJSON RevokeRefreshToken where
 
 runLogin
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> RevokeRefreshToken -> m (Int, Maybe ())
+  => Host -> RevokeRefreshToken -> m (Int, Maybe ())
 runLogin h o =
-  let api = API "POST" "/oauth/revoke"
+  let api = API Post "/oauth/revoke"
   in execRequest h api () o Nothing

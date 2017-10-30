@@ -3,8 +3,6 @@ module Auth0.Authentication.Logout where
 ---------------------------------------------------------------------------------
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
-import Data.ByteString (ByteString)
-import Data.Tagged (untag)
 import Data.Text
 ---------------------------------------------------------------------------------
 import Auth0.Request
@@ -22,14 +20,14 @@ data Logout
 
 instance ToRequest Logout where
   toRequest (Logout a b c) =
-    [ ( "return_to", a )
-    , ( "client_id", fmap untag b )
-    , ( "federated", c )
+    [ toField "return_to" a
+    , toField "client_id" b
+    , toField "federated" c
     ]
 
 runLogout
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> Logout -> m (Int, Maybe ())
+  => Host -> Logout -> m (Int, Maybe ())
 runLogout h o =
-  let api = API "GET" "/v2/logout"
+  let api = API Get "/v2/logout"
   in execRequest h api o () Nothing

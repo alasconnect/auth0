@@ -17,6 +17,7 @@ library
   exposed-modules:     Auth0
                      , Auth0.Request
                      , Auth0.Types
+                     , Auth0.Authentication
                      , Auth0.Authentication.Login
                      , Auth0.Authentication.Logout
                      , Auth0.Authentication.Passwordless
@@ -30,6 +31,22 @@ library
                      , Auth0.Authentication.AuthorizeClient
                      , Auth0.Authentication.GetToken
                      , Auth0.Authentication.RevokeRefreshToken
+                     , Auth0.Management
+                     , Auth0.Management.ClientGrants
+                     , Auth0.Management.Clients
+                     , Auth0.Management.Connections
+                     , Auth0.Management.DeviceCredentials
+                     , Auth0.Management.Grants
+                     , Auth0.Management.Logs
+                     , Auth0.Management.ResourceServers
+                     , Auth0.Management.Rules
+                     , Auth0.Management.RulesConfigs
+                     , Auth0.Management.UserBlocks
+                     , Auth0.Management.Users
+                     , Auth0.Management.UsersByEmail
+                     , Auth0.Management.Blacklists
+                     , Auth0.Management.Emails
+                     , Auth0.Management.Guardian
   build-depends:       aeson
                      , base
                      , bytestring

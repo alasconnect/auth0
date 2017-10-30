@@ -7,7 +7,6 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Aeson.Types
-import Data.ByteString (ByteString)
 import Data.Text
 import GHC.Generics
 ---------------------------------------------------------------------------------
@@ -31,7 +30,7 @@ instance ToJSON ChangePassword where
 
 runChangePassword
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> ChangePassword -> m (Int, Maybe ())
+  => Host -> ChangePassword -> m (Int, Maybe ())
 runChangePassword h o =
-  let api = API "POST" "/dbconnections/change_password"
+  let api = API Post "/dbconnections/change_password"
   in execRequest h api () (Just o) Nothing

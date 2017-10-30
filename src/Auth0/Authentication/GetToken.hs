@@ -8,7 +8,6 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Aeson.Types
-import Data.ByteString (ByteString)
 import Data.Text
 import GHC.Generics
 ---------------------------------------------------------------------------------
@@ -107,9 +106,9 @@ instance FromJSON GetTokenResponse where
 
 runGetToken
   :: (MonadIO m, MonadThrow m, ToJSON a)
-  => ByteString -> a -> m (Int, Maybe GetTokenResponse)
+  => Host -> a -> m (Int, Maybe GetTokenResponse)
 runGetToken h o =
-  let api = API "POST" "/oauth/token"
+  let api = API Post "/oauth/token"
   in execRequest h api () o Nothing
 
 ---------------------------------------------------------------------------------
@@ -144,10 +143,10 @@ instance FromJSON GetTokenResourceOwnerMFAResponse where
 
 runGetTokenMFA
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> GetTokenResourceOwnerMFA
+  => Host -> GetTokenResourceOwnerMFA
   -> m (Int, Maybe GetTokenResourceOwnerMFAResponse)
 runGetTokenMFA h o =
-  let api = API "POST" "/mfa/challenge"
+  let api = API Post "/mfa/challenge"
   in execRequest h api () o Nothing
 
 ---------------------------------------------------------------------------------

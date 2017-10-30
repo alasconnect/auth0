@@ -3,9 +3,6 @@ module Auth0.Authentication.Login where
 ---------------------------------------------------------------------------------
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
-import Data.Aeson (encode)
-import Data.ByteString (ByteString)
-import Data.Tagged (untag)
 import Data.Text
 ---------------------------------------------------------------------------------
 import Auth0.Request
@@ -26,17 +23,17 @@ data Login
 
 instance ToRequest Login where
   toRequest (Login a b c d e f) =
-    [ ( "response_type", (Just . pack . show . encode) a )
-    , ( "client_id", (Just . untag) b )
-    , ( "connection", c )
-    , ( "redirect_uri", Just d )
-    , ( "state", e )
-    , ( "additional-parameter", Just f )
+    [ toField "response_type" a
+    , toField "client_id" b
+    , toField "connection" c
+    , toField "redirect_uri" d
+    , toField "state" e
+    , toField "additional-parameter" f
     ]
 
 runLogin
   :: (MonadIO m, MonadThrow m)
-  => ByteString -> Login -> m (Int, Maybe ())
+  => Host -> Login -> m (Int, Maybe ())
 runLogin h o =
-  let api = API "GET" "/authorize"
+  let api = API Get "/authorize"
   in execRequest h api o () Nothing

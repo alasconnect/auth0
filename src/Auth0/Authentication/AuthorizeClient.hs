@@ -5,9 +5,6 @@ module Auth0.Authentication.AuthorizeClient where
 ---------------------------------------------------------------------------------
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
-import Data.Aeson (encode)
-import Data.ByteString (ByteString)
-import Data.Tagged (untag)
 import Data.Text
 ---------------------------------------------------------------------------------
 import Auth0.Request
@@ -29,13 +26,13 @@ data CodeGrant
 
 instance ToRequest CodeGrant where
   toRequest (CodeGrant a b c d e f g) =
-    [ ( "audience", a )
-    , ( "scope", b )
-    , ( "response_type", (Just . pack . show . encode) c )
-    , ( "client_id", (Just . untag) d )
-    , ( "redirect_uri", e )
-    , ( "state", f )
-    , ( "prompt", g )
+    [ toField "audience" a
+    , toField "scope" b
+    , toField "response_type" c
+    , toField "client_id" d
+    , toField "redirect_uri" e
+    , toField "state" f
+    , toField "prompt" g
     ]
 
 data CodeGrantPKCE
@@ -53,15 +50,15 @@ data CodeGrantPKCE
 
 instance ToRequest CodeGrantPKCE where
   toRequest (CodeGrantPKCE a b c d e f g h i) =
-    [ ( "audience", a )
-    , ( "scope", b )
-    , ( "response_type", (Just . pack . show . encode) c )
-    , ( "client_id", (Just . untag) d )
-    , ( "state", e )
-    , ( "redirect_uri", f )
-    , ( "code_challenge_method", Just g )
-    , ( "code_challenge", Just h )
-    , ( "prompt", i )
+    [ toField "audience" a
+    , toField "scope" b
+    , toField "response_type" c
+    , toField "client_id" d
+    , toField "state" e
+    , toField "redirect_uri" f
+    , toField "code_challenge_method" g
+    , toField "code_challenge" h
+    , toField "prompt" i
     ]
 
 data CodeGrantImplicit
@@ -79,20 +76,20 @@ data CodeGrantImplicit
 
 instance ToRequest CodeGrantImplicit where
   toRequest (CodeGrantImplicit a b c d e f g h i) =
-    [ ( "audience", a )
-    , ( "scope", b )
-    , ( "response_type", (Just . pack . show . encode) c )
-    , ( "client_id", (Just . untag) d )
-    , ( "state", e )
-    , ( "redirect_uri", f )
-    , ( "nonce", g )
-    , ( "connection", h )
-    , ( "prompt", i )
+    [ toField "audience" a
+    , toField "scope" b
+    , toField "response_type" c
+    , toField "client_id" d
+    , toField "state" e
+    , toField "redirect_uri" f
+    , toField "nonce" g
+    , toField "connection" h
+    , toField "prompt" i
     ]
 
-runCodeGrant
+runGetCodeGrant
   :: (MonadIO m, MonadThrow m, ToRequest a)
-  => ByteString -> a -> m (Int, Maybe ())
-runCodeGrant h o =
-  let api = API "GET" "/authorize"
+  => Host -> a -> m (Int, Maybe ())
+runGetCodeGrant h o =
+  let api = API Get "/authorize"
   in execRequest h api o () Nothing
