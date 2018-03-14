@@ -36,10 +36,10 @@ execRequest
 execRequest (Auth t) (API m p) a b hs = do
   let req = (setRequestMethod . encodeUtf8 . T.pack . show) m
           . (setRequestHost . untag) t
-          . setRequestPort 443 
+          . setRequestPort 443
           . setRequestSecure True
           . setRequestPath p
-          . (\r -> maybe r (\a' -> (setRequestQueryString . buildRequest) a' r) a)
+          . maybe id (setRequestQueryString . buildRequest) a
           . setRequestBodyJSON b
           . setRequestHeaders (fromMaybe [] hs)
           $ defaultRequest

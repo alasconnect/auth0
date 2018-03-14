@@ -52,7 +52,7 @@ library
                      , Auth0.Management.Tenants
                      , Auth0.Management.Tickets
   build-depends:       aeson
-                     , base >= 4.9 && <= 4.10
+                     , base >= 4.9 && <= 4.11
                      , bytestring
                      , containers
                      , exceptions
