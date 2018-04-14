@@ -87,7 +87,10 @@ instance ToJSON ResponseType where
   toJSON Token = "token"
 
 instance ToField ResponseType where
-  toField t v = (t, (Just . pack . show . encode) v)
+  toField t v = (t, (Just $ case v of
+                        Code -> "code"
+                        Token -> "token"
+                    ))
 
 data GrantType
   = Password
