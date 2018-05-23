@@ -9,7 +9,6 @@ import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Aeson.TH
-import Data.Aeson.Types
 import Data.Map
 import Data.Monoid ((<>))
 import Data.Text

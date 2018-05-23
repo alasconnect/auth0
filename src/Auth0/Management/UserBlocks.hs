@@ -7,7 +7,6 @@ module Auth0.Management.UserBlocks where
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.Types
 import Data.Monoid ((<>))
 import Data.Text
 import Data.Text.Encoding

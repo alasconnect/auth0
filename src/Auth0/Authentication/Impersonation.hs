@@ -6,7 +6,6 @@ module Auth0.Authentication.Impersonation where
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.Types
 import Data.ByteString
 import Data.Map
 import Data.Monoid ((<>))

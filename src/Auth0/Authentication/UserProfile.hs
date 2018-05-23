@@ -6,7 +6,6 @@ module Auth0.Authentication.UserProfile where
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.Types
 import Data.Text
 import GHC.Generics
 --------------------------------------------------------------------------------

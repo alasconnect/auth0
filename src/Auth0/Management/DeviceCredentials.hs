@@ -7,7 +7,6 @@ module Auth0.Management.DeviceCredentials where
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.Types
 import Data.Monoid ((<>))
 import Data.Text
 import Data.Text.Encoding
@@ -50,7 +49,7 @@ data DeviceCredentialResponse
   , ctype      :: Text
   , userId     :: Text
   } deriving (Generic, Show)
-  
+
 instance FromJSON DeviceCredentialResponse where
   parseJSON =
     genericParseJSON defaultOptions { fieldLabelModifier = f }
