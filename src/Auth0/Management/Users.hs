@@ -90,7 +90,7 @@ instance ToJSON Identity where
       f "isSocial" = "isSocial"
       f v          = camelTo2 '_' v
 
-data UserResponse
+data UserResponse appMd userMd
   = UserResponse
   { email         :: Maybe Text
   , emailVerified :: Maybe Bool
@@ -101,8 +101,8 @@ data UserResponse
   , createdAt     :: Maybe Text
   , updatedAt     :: Maybe Text
   , identities    :: Maybe [Identity]
-  , appMetadata   :: Maybe (Map Text Text)
-  , userMetadata  :: Maybe (Map Text Text)
+  , appMetadata   :: Maybe appMd
+  , userMetadata  :: Maybe userMd
   , picture       :: Maybe Text
   , name          :: Maybe Text
   , nickname      :: Maybe Text
@@ -118,8 +118,8 @@ data UserResponse
 deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''UserResponse
 
 runGetUsers
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> Maybe User -> m (Auth0Response [UserResponse])
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
+  => Auth -> Maybe User -> m (Auth0Response [UserResponse appMd userMd])
 runGetUsers a o =
   let api = API Get "/api/v2/users"
   in execRequest a api o (Nothing :: Maybe ()) Nothing
@@ -149,8 +149,8 @@ instance ToJSON UserCreate where
     genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
 
 runCreateUser
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> UserCreate -> m (Auth0Response UserResponse)
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
+  => Auth -> UserCreate -> m (Auth0Response (UserResponse appMd userMd))
 runCreateUser a o =
   let api = API Post "/api/v2/users"
   in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
@@ -171,8 +171,8 @@ instance ToRequest UserGet where
     ]
 
 runGetUser
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> Maybe UserGet -> m (Auth0Response UserResponse)
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
+  => Auth -> Text -> Maybe UserGet -> m (Auth0Response (UserResponse appMd userMd))
 runGetUser a i o =
   let api = API Get ("/api/v2/users/" <> encodeUtf8 i)
   in execRequest a api o (Nothing :: Maybe ()) Nothing
@@ -191,8 +191,8 @@ runDeleteUser a i =
 -- PATCH /api/v2/users/{id}
 
 runUpdateUser
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> UserCreate -> m (Auth0Response UserResponse)
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
+  => Auth -> Text -> UserCreate -> m (Auth0Response (UserResponse appMd userMd))
 runUpdateUser a i o =
   let api = API Update ("/api/v2/users/" <> encodeUtf8 i)
   in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing

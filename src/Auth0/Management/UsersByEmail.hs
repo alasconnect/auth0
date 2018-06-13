@@ -3,6 +3,7 @@ module Auth0.Management.UsersByEmail where
 --------------------------------------------------------------------------------
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
+import Data.Aeson (FromJSON)
 import Data.Text
 --------------------------------------------------------------------------------
 import Auth0.Management.Users (UserResponse)
@@ -30,8 +31,8 @@ instance ToRequest UsersByEmail where
     ]
 
 runGetUsersByEmail
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> UsersByEmail -> m (Auth0Response [UserResponse])
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
+  => Auth -> UsersByEmail -> m (Auth0Response [UserResponse appMd userMd])
 runGetUsersByEmail a o =
   let api = API Get "/api/v2/users-by-email"
   in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
