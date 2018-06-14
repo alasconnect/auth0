@@ -26,15 +26,15 @@ import Auth0.Types
 
 data User
   = User
-  { perPage       :: Maybe Int
-  , page          :: Maybe Int
-  , includeTotals :: Maybe Bool
-  , sort          :: Maybe Text
-  , connection    :: Maybe Text
-  , fields        :: Maybe Text
-  , includeFields :: Maybe Text
-  , q             :: Maybe Text
-  , searchEngine  :: Maybe Text
+  { uPerPage       :: Maybe Int
+  , uPage          :: Maybe Int
+  , uIncludeTotals :: Maybe Bool
+  , uSort          :: Maybe Text
+  , uConnection    :: Maybe Text
+  , uFields        :: Maybe Text
+  , uIncludeFields :: Maybe Text
+  , uQ             :: Maybe Text
+  , uSearchEngine  :: Maybe Text
   } deriving (Show)
 
 instance ToRequest User where
@@ -54,26 +54,26 @@ instance ToRequest User where
 
 data ProfileData
   = ProfileData
-  { email         :: Maybe Text
-  , emailVerified :: Maybe Bool
-  , name          :: Maybe Text
-  , username      :: Maybe Text
-  , givenName     :: Maybe Text
-  , phoneNumber   :: Maybe Text
-  , phoneVerified :: Maybe Bool
-  , familyName    :: Maybe Text
+  { pdEmail         :: Maybe Text
+  , pdEmailVerified :: Maybe Bool
+  , pdName          :: Maybe Text
+  , pdUsername      :: Maybe Text
+  , pdGivenName     :: Maybe Text
+  , pdPhoneNumber   :: Maybe Text
+  , pdPhoneVerified :: Maybe Bool
+  , pdFamilyName    :: Maybe Text
   } deriving (Generic, Show)
 
 deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''ProfileData
 
 data Identity
   = Identity
-  { connection  :: Text
-  , userId      :: Text
-  , provider    :: Text
-  , isSocial    :: Bool
-  , accessToken :: Maybe Text
-  , profileData :: Maybe ProfileData
+  { iConnection  :: Text
+  , iUserId      :: Text
+  , iProvider    :: Text
+  , iIsSocial    :: Bool
+  , iAccessToken :: Maybe Text
+  , iProfileData :: Maybe ProfileData
   } deriving (Generic, Show)
 
 instance FromJSON Identity where
@@ -92,27 +92,27 @@ instance ToJSON Identity where
 
 data UserResponse appMd userMd
   = UserResponse
-  { email         :: Maybe Text
-  , emailVerified :: Maybe Bool
-  , username      :: Maybe Text
-  , phoneNumber   :: Maybe Text
-  , phoneVerified :: Maybe Bool
-  , userId        :: Maybe Text
-  , createdAt     :: Maybe Text
-  , updatedAt     :: Maybe Text
-  , identities    :: Maybe [Identity]
-  , appMetadata   :: Maybe appMd
-  , userMetadata  :: Maybe userMd
-  , picture       :: Maybe Text
-  , name          :: Maybe Text
-  , nickname      :: Maybe Text
-  , multifactor   :: Maybe [Text]
-  , lastIp        :: Maybe Text
-  , lastLogin     :: Maybe Text
-  , loginsCount   :: Maybe Int
-  , blocked       :: Maybe Bool
-  , givenName     :: Maybe Text
-  , familyName    :: Maybe Text
+  { urEmail         :: Maybe Text
+  , urEmailVerified :: Maybe Bool
+  , urUsername      :: Maybe Text
+  , urPhoneNumber   :: Maybe Text
+  , urPhoneVerified :: Maybe Bool
+  , urUserId        :: Maybe Text
+  , urCreatedAt     :: Maybe Text
+  , urUpdatedAt     :: Maybe Text
+  , urIdentities    :: Maybe [Identity]
+  , urAppMetadata   :: Maybe appMd
+  , urUserMetadata  :: Maybe userMd
+  , urPicture       :: Maybe Text
+  , urName          :: Maybe Text
+  , urNickname      :: Maybe Text
+  , urMultifactor   :: Maybe [Text]
+  , urLastIp        :: Maybe Text
+  , urLastLogin     :: Maybe Text
+  , urLoginsCount   :: Maybe Int
+  , urBlocked       :: Maybe Bool
+  , urGivenName     :: Maybe Text
+  , urFamilyName    :: Maybe Text
   } deriving (Generic, Show)
 
 deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''UserResponse
@@ -129,28 +129,28 @@ runGetUsers a o =
 
 -- Request
 
-data UserCreate
+data UserCreate appMd userMd
   = UserCreate
-  { userId        :: Maybe Text
-  , connection    :: Text
-  , email         :: Maybe Text
-  , username      :: Maybe Text
-  , password      :: Maybe Text
-  , phoneNumber   :: Maybe Text
-  , userMetadata  :: Maybe (Map Text Text)
-  , emailVerified :: Maybe Bool
-  , verifyEmail   :: Maybe Bool
-  , phoneVerified :: Maybe Bool
-  , appMetadata   :: Maybe (Map Text Text)
+  { ucUserId        :: Maybe Text
+  , ucConnection    :: Text
+  , ucEmail         :: Maybe Text
+  , ucUsername      :: Maybe Text
+  , ucPassword      :: Maybe Text
+  , ucPhoneNumber   :: Maybe Text
+  , ucUserMetadata  :: Maybe userMd
+  , ucEmailVerified :: Maybe Bool
+  , ucVerifyEmail   :: Maybe Bool
+  , ucPhoneVerified :: Maybe Bool
+  , ucAppMetadata   :: Maybe appMd
   } deriving (Generic, Show)
 
-instance ToJSON UserCreate where
+instance (ToJSON appMd, ToJSON userMd) => ToJSON (UserCreate appMd userMd) where
   toJSON =
     genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
 
 runCreateUser
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => Auth -> UserCreate -> m (Auth0Response (UserResponse appMd userMd))
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd, ToJSON appMd, ToJSON userMd, Show appMd, Show userMd)
+  => Auth -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
 runCreateUser a o =
   let api = API Post "/api/v2/users"
   in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
@@ -191,8 +191,8 @@ runDeleteUser a i =
 -- PATCH /api/v2/users/{id}
 
 runUpdateUser
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => Auth -> Text -> UserCreate -> m (Auth0Response (UserResponse appMd userMd))
+  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd, ToJSON appMd, ToJSON userMd, Show appMd, Show userMd)
+  => Auth -> Text -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
 runUpdateUser a i o =
   let api = API Update ("/api/v2/users/" <> encodeUtf8 i)
   in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
@@ -202,15 +202,15 @@ runUpdateUser a i o =
 
 data UserEnrollment
   = UserEnrollment
-  { id          :: Maybe Text
-  , status      :: Maybe Text
-  , etype       :: Maybe Text
-  , name        :: Maybe Text
-  , identifier  :: Maybe Text
-  , phoneNumber :: Maybe Text
-  , authMethod  :: Maybe Text
-  , enrolledAt  :: Maybe Text
-  , lastAuth    :: Maybe Text
+  { ueId          :: Maybe Text
+  , ueStatus      :: Maybe Text
+  , ueEtype       :: Maybe Text
+  , ueName        :: Maybe Text
+  , ueIdentifier  :: Maybe Text
+  , uePhoneNumber :: Maybe Text
+  , ueAuthMethod  :: Maybe Text
+  , ueEnrolledAt  :: Maybe Text
+  , ueLastAuth    :: Maybe Text
   } deriving (Generic, Show)
 
 instance FromJSON UserEnrollment where
@@ -234,11 +234,11 @@ runGetUserEnrollments a i =
 
 data UserLogGet
   = UserLogGet
-  { userId        :: Text
-  , page          :: Maybe Int
-  , perPage       :: Maybe Int
-  , sort          :: Maybe Text
-  , includeTotals :: Maybe Bool
+  { ulgUserId        :: Text
+  , ulgPage          :: Maybe Int
+  , ulgPerPage       :: Maybe Int
+  , ulgSort          :: Maybe Text
+  , ulgIncludeTotals :: Maybe Bool
   } deriving (Show)
 
 instance ToRequest UserLogGet where
@@ -254,14 +254,14 @@ instance ToRequest UserLogGet where
 
 data UserLog
   = UserLog
-  { date         :: Maybe Text
-  , ltype        :: Maybe Text
-  , clientId     :: Maybe Text
-  , clientName   :: Maybe Text
-  , ip           :: Maybe Text
-  , locationInfo :: Maybe (Map Text Text)
-  , details      :: Maybe (Map Text Text)
-  , userId       :: Maybe Text
+  { ulDate         :: Maybe Text
+  , ulLtype        :: Maybe Text
+  , ulClientId     :: Maybe Text
+  , ulClientName   :: Maybe Text
+  , ulIp           :: Maybe Text
+  , ulLocationInfo :: Maybe (Map Text Text)
+  , ulDetails      :: Maybe (Map Text Text)
+  , ulUserId       :: Maybe Text
   } deriving (Generic, Show)
 
 instance FromJSON UserLog where
@@ -328,10 +328,10 @@ runUserRecoveryCodeRegeneration a i =
 
 data LinkAccount
   = LinkAccount
-  { provider     :: Maybe Text
-  , connectionId :: Maybe Text
-  , userId       :: Maybe Text
-  , linkWith     :: Maybe Text
+  { laProvider     :: Maybe Text
+  , laConnectionId :: Maybe Text
+  , laUserId       :: Maybe Text
+  , laLinkWith     :: Maybe Text
   } deriving (Generic, Show)
 
 instance ToJSON LinkAccount where
