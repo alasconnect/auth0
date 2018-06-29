@@ -32,7 +32,7 @@ instance ToRequest UsersByEmail where
 
 runGetUsersByEmail
   :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => Auth -> UsersByEmail -> m (Auth0Response [UserResponse appMd userMd])
-runGetUsersByEmail a o =
+  => TokenAuth -> UsersByEmail -> m (Auth0Response [UserResponse appMd userMd])
+runGetUsersByEmail (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/users-by-email"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])

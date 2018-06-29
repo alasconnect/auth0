@@ -62,10 +62,10 @@ instance FromJSON ConnectionResponse where
 
 runGetConnections
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Connection -> m (Auth0Response [ConnectionResponse])
-runGetConnections a o =
+  => TokenAuth -> Connection -> m (Auth0Response [ConnectionResponse])
+runGetConnections (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/connections"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/connections
@@ -102,10 +102,10 @@ instance ToJSON ConnectionCreate where
 
 runCreateConnection
   :: (MonadIO m, MonadThrow m)
-  => Auth -> ConnectionCreate -> m (Auth0Response ConnectionResponse)
-runCreateConnection a o =
+  => TokenAuth -> ConnectionCreate -> m (Auth0Response ConnectionResponse)
+runCreateConnection (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/connections"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/connections/{id}
@@ -124,20 +124,20 @@ instance ToRequest ConnectionGet where
 
 runGetConnection
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> ConnectionGet -> m (Auth0Response ConnectionResponse)
-runGetConnection a i o =
+  => TokenAuth -> Text -> ConnectionGet -> m (Auth0Response ConnectionResponse)
+runGetConnection (TokenAuth tenant accessToken) i o =
   let api = API Get ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/connections/{id}
 
 runDeleteConnection
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteConnection a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteConnection (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/connections/{id}
@@ -156,10 +156,10 @@ instance ToJSON ConnectionUpdate where
 
 runUpdateConnection
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ConnectionResponse)
-runUpdateConnection a i =
+  => TokenAuth -> Text -> m (Auth0Response ConnectionResponse)
+runUpdateConnection (TokenAuth tenant accessToken) i =
   let api = API Update ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/connections/{id}/users
@@ -175,7 +175,7 @@ instance ToRequest ConnectionUserDelete where
 
 runDeleteConnectionUser
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> ConnectionUserDelete -> m (Auth0Response ConnectionResponse)
-runDeleteConnectionUser a i o =
+  => TokenAuth -> Text -> ConnectionUserDelete -> m (Auth0Response ConnectionResponse)
+runDeleteConnectionUser (TokenAuth tenant accessToken) i o =
   let api = API Update ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])

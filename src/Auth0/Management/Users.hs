@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Auth0.Management.Users where
@@ -119,10 +120,10 @@ deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''UserResponse
 
 runGetUsers
   :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => Auth -> Maybe User -> m (Auth0Response [UserResponse appMd userMd])
-runGetUsers a o =
+  => TokenAuth -> Maybe User -> m (Auth0Response [UserResponse appMd userMd])
+runGetUsers (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/users"
-  in execRequest a api o (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api o (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/users
@@ -150,10 +151,11 @@ instance (ToJSON appMd, ToJSON userMd) => ToJSON (UserCreate appMd userMd) where
 
 runCreateUser
   :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd, ToJSON appMd, ToJSON userMd, Show appMd, Show userMd)
-  => Auth -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
-runCreateUser a o =
+  => TokenAuth -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
+runCreateUser (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/users"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+      authHeader = Just [mkAuthHeader accessToken]
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) authHeader
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users/{id}
@@ -172,30 +174,31 @@ instance ToRequest UserGet where
 
 runGetUser
   :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => Auth -> Text -> Maybe UserGet -> m (Auth0Response (UserResponse appMd userMd))
-runGetUser a i o =
+  => TokenAuth -> Text -> Maybe UserGet -> m (Auth0Response (UserResponse appMd userMd))
+runGetUser (TokenAuth tenant accessToken) i o =
   let api = API Get ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest a api o (Nothing :: Maybe ()) Nothing
+      authHeader = Just [mkAuthHeader accessToken]
+  in execRequest tenant api o (Nothing :: Maybe ()) authHeader
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/users/{id}
 
 runDeleteUser
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteUser a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteUser (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/users/{id}
 
 runUpdateUser
   :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd, ToJSON appMd, ToJSON userMd, Show appMd, Show userMd)
-  => Auth -> Text -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
-runUpdateUser a i o =
+  => TokenAuth -> Text -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
+runUpdateUser (TokenAuth tenant accessToken) i o =
   let api = API Update ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users/{id}/enrollments
@@ -222,10 +225,10 @@ instance FromJSON UserEnrollment where
 
 runGetUserEnrollments
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response [UserEnrollment])
-runGetUserEnrollments a i =
+  => TokenAuth -> Text -> m (Auth0Response [UserEnrollment])
+runGetUserEnrollments (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/users/" <> encodeUtf8 i <> "/enrollments")
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users/{id}/logs
@@ -270,10 +273,10 @@ instance FromJSON UserLog where
 
 runGetUserLogs
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> UserLogGet -> m (Auth0Response [UserLog])
-runGetUserLogs a i o =
+  => TokenAuth -> Text -> UserLogGet -> m (Auth0Response [UserLog])
+runGetUserLogs (TokenAuth tenant accessToken) i o =
   let api = API Get ("/api/v2/users/" <> encodeUtf8 i <> "/logs")
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/users/{id}/multifactor/{provider}
@@ -286,23 +289,23 @@ instance Show MultifactorProvider where
 
 runDeleteUserProvider
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> MultifactorProvider -> m (Auth0Response ())
-runDeleteUserProvider a i j =
+  => TokenAuth -> Text -> MultifactorProvider -> m (Auth0Response ())
+runDeleteUserProvider (TokenAuth tenant accessToken) i j =
   let api = API Delete ("/api/v2/users/" <> encodeUtf8 i <>
                         "/multifactor/" <> (encodeUtf8 . pack . show) j)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/users/{id}/identities/{provider}/{user_id}
 
 runDeleteUserIdentity
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> Text -> Text -> m (Auth0Response Identity)
-runDeleteUserIdentity a i j k =
+  => TokenAuth -> Text -> Text -> Text -> m (Auth0Response Identity)
+runDeleteUserIdentity (TokenAuth tenant accessToken)  i j k =
   let api = API Delete ("/api/v2/users/" <> encodeUtf8 i <>
                         "/identities/" <> encodeUtf8 j <>
                         "/" <> encodeUtf8 k)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/users/{id}/recovery-code-regeneration
@@ -318,10 +321,10 @@ instance FromJSON GuardianRecoveryCode where
 
 runUserRecoveryCodeRegeneration
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response GuardianRecoveryCode)
-runUserRecoveryCodeRegeneration a i =
+  => TokenAuth -> Text -> m (Auth0Response GuardianRecoveryCode)
+runUserRecoveryCodeRegeneration (TokenAuth tenant accessToken) i =
   let api = API Post ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/users/{id}/identities
@@ -340,7 +343,7 @@ instance ToJSON LinkAccount where
 
 runUserLinkAccount
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> LinkAccount -> m (Auth0Response [Identity])
-runUserLinkAccount a i o =
+  => TokenAuth -> Text -> LinkAccount -> m (Auth0Response [Identity])
+runUserLinkAccount (TokenAuth tenant accessToken) i o =
   let api = API Post ("/api/v2/users/" <> encodeUtf8 i <> "/identities")
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

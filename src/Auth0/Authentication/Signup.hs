@@ -44,6 +44,6 @@ instance FromJSON SignupResponse where
 runSignup
   :: (MonadIO m, MonadThrow m)
   => Auth -> Signup -> m (Auth0Response SignupResponse)
-runSignup a o =
+runSignup (Auth tenant) o =
   let api = API Post "/dbconnections/signup"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing

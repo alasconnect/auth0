@@ -36,10 +36,10 @@ instance FromJSON Guardian where
 
 runGetGuardians
   :: (MonadIO m, MonadThrow m)
-  => Auth -> m (Auth0Response [Guardian])
-runGetGuardians a =
+  => TokenAuth -> m (Auth0Response [Guardian])
+runGetGuardians (TokenAuth tenant accessToken) =
   let api = API Get "/api/v2/guardian/factors"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/guardian/enrollments/{id}
@@ -61,20 +61,20 @@ instance FromJSON Enrollment where
 
 runGetGuardianEnrollments
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response [Enrollment])
-runGetGuardianEnrollments a i =
+  => TokenAuth -> Text -> m (Auth0Response [Enrollment])
+runGetGuardianEnrollments (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/guardian/enrollments/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/guardian/enrollments/{id}
 
 runDeleteGuardianEnrollment
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteGuardianEnrollment a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteGuardianEnrollment (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/guardian/enrollments/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/guardian/factors/sms/templates
@@ -95,20 +95,20 @@ instance ToJSON Template where
 
 runGetGuardianTemplate
   :: (MonadIO m, MonadThrow m)
-  => Auth -> m (Auth0Response Template)
-runGetGuardianTemplate a =
+  => TokenAuth -> m (Auth0Response Template)
+runGetGuardianTemplate (TokenAuth tenant accessToken) =
   let api = API Get "/api/v2/guardian/factors/sms/templates"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PUT /api/v2/guardian/factors/sms/templates
 
 runUpdateGuardianTemplate
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Template -> m (Auth0Response Template)
-runUpdateGuardianTemplate a o =
+  => TokenAuth -> Template -> m (Auth0Response Template)
+runUpdateGuardianTemplate (TokenAuth tenant accessToken) o =
   let api = API Put "/api/v2/guardian/factors/sms/templates"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/guardian/factors/push-notification/providers/sns
@@ -128,10 +128,10 @@ instance FromJSON PushNotification where
 
 runGetGuardianPushNotification
   :: (MonadIO m, MonadThrow m)
-  => Auth -> m (Auth0Response PushNotification)
-runGetGuardianPushNotification a =
+  => TokenAuth -> m (Auth0Response PushNotification)
+runGetGuardianPushNotification (TokenAuth tenant accessToken) =
   let api = API Get "/api/v2/guardian/factors/push-notifications/providers/sns"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- TODO: Twilio
@@ -163,10 +163,10 @@ instance FromJSON GuardianEnrollmentTicketResponse where
 
 runCreateGuardianEnrollmentTicket
   :: (MonadIO m, MonadThrow m)
-  => Auth -> GuardianEnrollmentTicket -> m (Auth0Response GuardianEnrollmentTicketResponse)
-runCreateGuardianEnrollmentTicket a o =
+  => TokenAuth -> GuardianEnrollmentTicket -> m (Auth0Response GuardianEnrollmentTicketResponse)
+runCreateGuardianEnrollmentTicket (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/guardian/encrollments/ticket"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PUT /api/v2/guardian/factors/{name}
@@ -180,7 +180,7 @@ deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''GuardianFactor
 
 runUpdateGuardianFactor
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> GuardianFactorUpdate -> m (Auth0Response GuardianFactorUpdate)
-runUpdateGuardianFactor a i o =
+  => TokenAuth -> Text -> GuardianFactorUpdate -> m (Auth0Response GuardianFactorUpdate)
+runUpdateGuardianFactor (TokenAuth tenant accessToken) i o =
   let api = API Put ("/api/v2/guardian/factors/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

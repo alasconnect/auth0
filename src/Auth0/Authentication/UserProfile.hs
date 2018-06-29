@@ -36,6 +36,6 @@ instance FromJSON UserProfileResponse where
 runUserProfile
   :: (MonadIO m, MonadThrow m)
   => Auth -> m (Auth0Response UserProfileResponse)
-runUserProfile a =
+runUserProfile (Auth tenant) =
   let api = API Get "/userinfo"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing

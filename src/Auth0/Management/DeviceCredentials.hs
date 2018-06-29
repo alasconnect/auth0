@@ -59,10 +59,10 @@ instance FromJSON DeviceCredentialResponse where
 
 runGetDeviceCredentials
   :: (MonadIO m, MonadThrow m)
-  => Auth -> DeviceCredential -> m (Auth0Response [DeviceCredentialResponse])
-runGetDeviceCredentials a o =
+  => TokenAuth -> DeviceCredential -> m (Auth0Response [DeviceCredentialResponse])
+runGetDeviceCredentials (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/device-credentials"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/device-credentials
@@ -92,17 +92,17 @@ instance FromJSON DeviceCredentialId
 
 runCreateDeviceCredential
   :: (MonadIO m, MonadThrow m)
-  => Auth -> DeviceCredentialCreate -> m (Auth0Response DeviceCredentialId)
-runCreateDeviceCredential a o =
+  => TokenAuth -> DeviceCredentialCreate -> m (Auth0Response DeviceCredentialId)
+runCreateDeviceCredential (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/device-credentials"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/device-credentials/{id}
 
 runDeleteDeviceCredential
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response DeviceCredentialId)
-runDeleteDeviceCredential a i =
+  => TokenAuth -> Text -> m (Auth0Response DeviceCredentialId)
+runDeleteDeviceCredential (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/device-credentials/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])

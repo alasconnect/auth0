@@ -10,6 +10,7 @@ import Data.Aeson
 import Data.Bifunctor
 import Data.ByteString (ByteString)
 import Data.Map
+import Data.Monoid ((<>))
 import Data.Text
 import Data.Text.Encoding
 import Data.Tagged
@@ -105,11 +106,20 @@ instance ToJSON GrantType where
   toJSON ClientCredentials = "client_credentials"
   toJSON OTP               = "http://auth0.com/oauth/grant-type/mfa-otp"
 
--- | Describes the auth0 hostname to use and is passed to `execRequet`.
+-- | Describes the auth0 hostname to use and is passed to `execRequest`.
 data Auth = Auth Tenant deriving (Show)
 
 mkAuth :: ByteString -> Auth
 mkAuth = Auth . mkTenant
+
+data TokenAuth = TokenAuth Tenant AccessToken deriving (Show)
+
+mkTokenAuth :: ByteString -> AccessToken -> TokenAuth
+mkTokenAuth bs at = TokenAuth (mkTenant bs) at
+
+mkAuthHeader :: AccessToken -> (HeaderName, ByteString)
+mkAuthHeader accessToken =
+  ("Authorization", encodeUtf8 $ "Bearer " <> untag accessToken)
 
 data Verb
   = Get

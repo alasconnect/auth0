@@ -42,10 +42,10 @@ instance FromJSON BlacklistTokenResponse
 
 runGetBlacklistTokens
   :: (MonadIO m, MonadThrow m)
-  => Auth -> BlacklistToken -> m (Auth0Response [BlacklistTokenResponse])
-runGetBlacklistTokens a o =
+  => TokenAuth -> BlacklistToken -> m (Auth0Response [BlacklistTokenResponse])
+runGetBlacklistTokens (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/blacklist/tokens"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/blacklists/tokens
@@ -56,7 +56,7 @@ instance ToJSON BlacklistTokenDo
 
 runBlacklistToken
   :: (MonadIO m, MonadThrow m)
-  => Auth -> BlacklistTokenDo -> m (Auth0Response ())
-runBlacklistToken a o =
+  => TokenAuth -> BlacklistTokenDo -> m (Auth0Response ())
+runBlacklistToken (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/blacklist/tokens"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

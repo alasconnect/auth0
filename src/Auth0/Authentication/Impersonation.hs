@@ -48,6 +48,6 @@ instance ToJSON Impersonate where
 runImpersonate
   :: (MonadIO m, MonadThrow m)
   => Auth -> ByteString -> Impersonate -> m (Auth0Response Text)
-runImpersonate a uid o =
+runImpersonate (Auth tenant) uid o =
   let api = API Post ("/users/" <> uid <> "/impersonate")
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing

@@ -51,20 +51,20 @@ instance ToJSON JobResponse where
 
 runGetJob
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response JobResponse)
-runGetJob a i =
+  => TokenAuth -> Text -> m (Auth0Response JobResponse)
+runGetJob (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/jobs/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/jobs/{id}/errors
 
 runGetJobErrors
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runGetJobErrors a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runGetJobErrors (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/jobs/" <> encodeUtf8 i <> "/errors")
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/jobs/{id}/results
@@ -83,10 +83,10 @@ instance FromJSON JobResultsResponse where
 
 runGetJobResults
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response JobResultsResponse)
-runGetJobResults a i =
+  => TokenAuth -> Text -> m (Auth0Response JobResultsResponse)
+runGetJobResults (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/jobs/" <> encodeUtf8 i <> "/results")
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/jobs/users-exports
@@ -105,10 +105,10 @@ instance ToJSON JobExportCreate where
 
 runCreateJobExport
   :: (MonadIO m, MonadThrow m)
-  => Auth -> JobExportCreate -> m (Auth0Response JobResponse)
-runCreateJobExport a o =
+  => TokenAuth -> JobExportCreate -> m (Auth0Response JobResponse)
+runCreateJobExport (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/jobs/users-exports"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/jobs/users-imports
@@ -143,7 +143,7 @@ instance FromJSON JobVerificationEmailResponse where
 
 runCreateJobVerificationEmail
   :: (MonadIO m, MonadThrow m)
-  => Auth -> JobVerificationEmail -> m (Auth0Response JobVerificationEmailResponse)
-runCreateJobVerificationEmail a o =
+  => TokenAuth -> JobVerificationEmail -> m (Auth0Response JobVerificationEmailResponse)
+runCreateJobVerificationEmail (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/jobs/verification-email"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

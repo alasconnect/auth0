@@ -50,10 +50,10 @@ instance FromJSON ClientGrantResponse where
 
 runGetClientGrants
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Maybe ClientGrant -> m (Auth0Response [ClientGrantResponse])
-runGetClientGrants a o =
+  => TokenAuth -> Maybe ClientGrant -> m (Auth0Response [ClientGrantResponse])
+runGetClientGrants (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/client-grants"
-  in execRequest a api o (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api o (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/client-grants
@@ -71,20 +71,20 @@ instance ToJSON ClientGrantCreate where
 
 runCreateClientGrant
   :: (MonadIO m, MonadThrow m)
-  => Auth -> ClientGrantCreate -> m (Auth0Response ())
-runCreateClientGrant a o =
+  => TokenAuth -> ClientGrantCreate -> m (Auth0Response ())
+runCreateClientGrant (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/client-grants"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/client-grants/{id}
 
 runDeleteClientGrant
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteClientGrant a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteClientGrant (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/client-grants/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/client-grants/{id}
@@ -98,7 +98,7 @@ instance ToJSON ClientGrantUpdate
 
 runUpdateClientGrant
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> ClientGrantUpdate -> m (Auth0Response ClientGrantResponse)
-runUpdateClientGrant a i o =
+  => TokenAuth -> Text -> ClientGrantUpdate -> m (Auth0Response ClientGrantResponse)
+runUpdateClientGrant (TokenAuth tenant accessToken) i o =
   let api = API Update ("/api/v2/client-grants/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

@@ -66,20 +66,20 @@ instance FromJSON EmailProviderResponse where
 
 runGetEmailProviders
   :: (MonadIO m, MonadThrow m)
-  => Auth -> EmailProvider -> m (Auth0Response [EmailProviderResponse])
-runGetEmailProviders a o =
+  => TokenAuth -> EmailProvider -> m (Auth0Response [EmailProviderResponse])
+runGetEmailProviders (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/emails/provider"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/emails/provider
 
 runDeleteEmailProvider
   :: (MonadIO m, MonadThrow m)
-  => Auth -> m (Auth0Response ())
-runDeleteEmailProvider a =
+  => TokenAuth -> m (Auth0Response ())
+runDeleteEmailProvider (TokenAuth tenant accessToken) =
   let api = API Delete "/api/v2/emails/provider"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/emails/provider
@@ -108,10 +108,10 @@ instance ToJSON EmailProviderUpdate where
 
 runUpdateEmailProvider
   :: (MonadIO m, MonadThrow m)
-  => Auth -> EmailProviderUpdate -> m (Auth0Response EmailProviderResponse)
-runUpdateEmailProvider a o =
+  => TokenAuth -> EmailProviderUpdate -> m (Auth0Response EmailProviderResponse)
+runUpdateEmailProvider (TokenAuth tenant accessToken) o =
   let api = API Update "/api/v2/emails/provider"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/emails/provider
@@ -120,7 +120,7 @@ type EmailProviderCreate = EmailProviderUpdate
 
 runCreateEmailProvider
   :: (MonadIO m, MonadThrow m)
-  => Auth -> EmailProviderCreate -> m (Auth0Response EmailProviderResponse)
-runCreateEmailProvider a o =
+  => TokenAuth -> EmailProviderCreate -> m (Auth0Response EmailProviderResponse)
+runCreateEmailProvider (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/emails/provider"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

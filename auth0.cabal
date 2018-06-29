@@ -72,7 +72,7 @@ test-suite auth0-test
   hs-source-dirs:      test
   main-is:             Main.hs
   build-depends:       auth0
-                     , base >= 4.9 && <= 4.10
+                     , base >= 4.9 && <= 4.11
                      , bytestring
                      , hspec
                      , random

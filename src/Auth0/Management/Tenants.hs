@@ -92,10 +92,10 @@ deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''TenantSettingR
 
 runGetTenantSettings
   :: (MonadIO m, MonadThrow m)
-  => Auth -> TenantSettings -> m (Auth0Response TenantSettingResponse)
-runGetTenantSettings a o =
+  => TokenAuth -> TenantSettings -> m (Auth0Response TenantSettingResponse)
+runGetTenantSettings (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/tenants/settings"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/tenants/settings
@@ -104,7 +104,7 @@ type TenantSettingsUpdate = TenantSettingResponse
 
 runUpdateTenantSettings
   :: (MonadIO m, MonadThrow m)
-  => Auth -> TenantSettingsUpdate -> m (Auth0Response TenantSettingResponse)
-runUpdateTenantSettings a o =
+  => TokenAuth -> TenantSettingsUpdate -> m (Auth0Response TenantSettingResponse)
+runUpdateTenantSettings (TokenAuth tenant accessToken) o =
   let api = API Update "/api/v2/tenants/settings"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

@@ -28,6 +28,6 @@ instance ToRequest Logout where
 runLogout
   :: (MonadIO m, MonadThrow m)
   => Auth -> Maybe Logout -> m (Auth0Response ())
-runLogout a o =
+runLogout (Auth tenant) o =
   let api = API Get "/v2/logout"
-  in execRequest a api o (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api o (Nothing :: Maybe ()) Nothing

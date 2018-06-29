@@ -52,37 +52,37 @@ instance FromJSON UserBlockResponse where
 
 runGetUserBlocks
   :: (MonadIO m, MonadThrow m)
-  => Auth -> UserBlock -> m (Auth0Response BlockedFor)
-runGetUserBlocks a o =
+  => TokenAuth -> UserBlock -> m (Auth0Response BlockedFor)
+runGetUserBlocks (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/user-blocks"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/user-blocks
 
 runDeleteUserBlock
   :: (MonadIO m, MonadThrow m)
-  => Auth -> UserBlock -> m (Auth0Response ())
-runDeleteUserBlock a o =
+  => TokenAuth -> UserBlock -> m (Auth0Response ())
+runDeleteUserBlock (TokenAuth tenant accessToken) o =
   let api = API Delete "/api/v2/user-blocks"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/user-blocks/{id}
 
 runGetUserBlock
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response BlockedFor)
-runGetUserBlock a i =
+  => TokenAuth -> Text -> m (Auth0Response BlockedFor)
+runGetUserBlock (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/user-blocks/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/user-blocks/{id}
 
 runUnblockUserBlock
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response BlockedFor)
-runUnblockUserBlock a i =
+  => TokenAuth -> Text -> m (Auth0Response BlockedFor)
+runUnblockUserBlock (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/user-blocks/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])

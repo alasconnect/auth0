@@ -90,6 +90,6 @@ instance ToRequest CodeGrantImplicit where
 runGetCodeGrant
   :: (MonadIO m, MonadThrow m, ToRequest a)
   => Auth -> a -> m (Auth0Response ())
-runGetCodeGrant a o =
+runGetCodeGrant (Auth tenant) o =
   let api = API Get "/authorize"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) Nothing

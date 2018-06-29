@@ -7,7 +7,6 @@ module Auth0.Management.Tickets where
 import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.TH
 import Data.Text
 import GHC.Generics
 --------------------------------------------------------------------------------
@@ -44,10 +43,10 @@ instance FromJSON TicketResponse where
 
 runCreateTicketEmailVerification
   :: (MonadIO m, MonadThrow m)
-  => Auth -> TicketEmailVerification -> m (Auth0Response TicketResponse)
-runCreateTicketEmailVerification a o =
+  => TokenAuth -> TicketEmailVerification -> m (Auth0Response TicketResponse)
+runCreateTicketEmailVerification (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/tickets/email-verification"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/tickets/password-change
@@ -68,7 +67,7 @@ instance ToJSON TicketChangePassword where
 
 runCreateTicketChangePassword
   :: (MonadIO m, MonadThrow m)
-  => Auth -> TicketChangePassword -> m (Auth0Response TicketResponse)
-runCreateTicketChangePassword a o =
+  => TokenAuth -> TicketChangePassword -> m (Auth0Response TicketResponse)
+runCreateTicketChangePassword (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/tickets/password-change"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

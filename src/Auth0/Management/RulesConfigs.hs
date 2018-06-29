@@ -30,20 +30,20 @@ instance FromJSON RuleConfigResponse
 
 runGetRuleConfigs
   :: (MonadIO m, MonadThrow m)
-  => Auth -> m (Auth0Response [RuleConfigResponse])
-runGetRuleConfigs a =
+  => TokenAuth -> m (Auth0Response [RuleConfigResponse])
+runGetRuleConfigs (TokenAuth tenant accessToken) =
   let api = API Get "/api/v2/rules-configs"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/rules-configs/{key}
 
 runDeleteRuleConfig
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteRuleConfig a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteRuleConfig (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/rules-configs/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PUT /api/v2/rules-configs/{key}
@@ -65,7 +65,7 @@ instance FromJSON RuleConfigSetResponse
 
 runSetRuleConfig
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> RuleConfigSet -> m (Auth0Response RuleConfigSetResponse)
-runSetRuleConfig a i o =
+  => TokenAuth -> Text -> RuleConfigSet -> m (Auth0Response RuleConfigSetResponse)
+runSetRuleConfig (TokenAuth tenant accessToken) i o =
   let api = API Put ("/api/v2/rules-configs/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

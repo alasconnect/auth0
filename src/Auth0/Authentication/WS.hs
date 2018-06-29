@@ -34,16 +34,16 @@ instance ToRequest WS where
 runWSFederation
   :: (MonadIO m, MonadThrow m)
   => Auth -> ClientId -> WS -> m (Auth0Response Text)
-runWSFederation a cid o =
+runWSFederation (Auth tenant) cid o =
   let api = API Get ("/wsfed/" <> (encodeUtf8 . untag) cid)
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) Nothing
 
 -- GET /wsfed/YOUR_CLIENT_ID/FederationMetadata/2007-06/FederationMetadata.xml
 
 runWSMetadata
   :: (MonadIO m, MonadThrow m)
   => Auth -> ClientId -> m (Auth0Response Text)
-runWSMetadata a cid =
+runWSMetadata (Auth tenant) cid =
   let xml = "/FederationMetadata/2007-06/FederationMetadata.xml"
       api = API Get ("/wsfed/" <> (encodeUtf8 . untag) cid <> xml)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing

@@ -53,10 +53,10 @@ instance FromJSON RuleResponse where
 
 runGetRules
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Rule -> m (Auth0Response [RuleResponse])
-runGetRules a o =
+  => TokenAuth -> Rule -> m (Auth0Response [RuleResponse])
+runGetRules (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/rules"
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/rules
@@ -75,10 +75,10 @@ instance ToJSON RuleCreate where
 
 runCreateRule
   :: (MonadIO m, MonadThrow m)
-  => Auth -> RuleCreate -> m (Auth0Response RuleResponse)
-runCreateRule a o =
+  => TokenAuth -> RuleCreate -> m (Auth0Response RuleResponse)
+runCreateRule (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/rules"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/rules/{id}
@@ -99,20 +99,20 @@ instance ToRequest RuleGet where
 
 runGetRule
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> RuleGet -> m (Auth0Response RuleResponse)
-runGetRule a i o =
+  => TokenAuth -> Text -> RuleGet -> m (Auth0Response RuleResponse)
+runGetRule (TokenAuth tenant accessToken) i o =
   let api = API Get ("/api/v2/rules/" <> encodeUtf8 i)
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/rules/{id}
 
 runDeleteRule
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteRule a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteRule (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/rules/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/rules/{id}
@@ -121,7 +121,7 @@ type RuleUpdate = RuleCreate
 
 runUpdateRule
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> RuleUpdate -> m (Auth0Response RuleResponse)
-runUpdateRule a i o =
+  => TokenAuth -> Text -> RuleUpdate -> m (Auth0Response RuleResponse)
+runUpdateRule (TokenAuth tenant accessToken) i o =
   let api = API Update ("/api/v2/rules/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

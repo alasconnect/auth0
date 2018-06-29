@@ -41,10 +41,10 @@ instance FromJSON ResourceServerResponse where
 
 runGetResourceServers
   :: (MonadIO m, MonadThrow m)
-  => Auth -> m (Auth0Response [ResourceServerResponse])
-runGetResourceServers a =
+  => TokenAuth -> m (Auth0Response [ResourceServerResponse])
+runGetResourceServers (TokenAuth tenant accessToken) =
   let api = API Get "/api/v2/resource-servers"
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/resource-servers
@@ -68,30 +68,30 @@ instance ToJSON ResourceServerCreate where
 
 runCreateResourceServer
   :: (MonadIO m, MonadThrow m)
-  => Auth -> ResourceServerCreate -> m (Auth0Response [ResourceServerResponse])
-runCreateResourceServer a o =
+  => TokenAuth -> ResourceServerCreate -> m (Auth0Response [ResourceServerResponse])
+runCreateResourceServer (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/resource-servers"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/resource-servers/{id}
 
 runGetResourceServer
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ResourceServerResponse)
-runGetResourceServer a i =
+  => TokenAuth -> Text -> m (Auth0Response ResourceServerResponse)
+runGetResourceServer (TokenAuth tenant accessToken) i =
   let api = API Get ("/api/v2/resource-servers/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/resource-servers/{id}
 
 runDeleteResourceServer
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ResourceServerResponse)
-runDeleteResourceServer a i =
+  => TokenAuth -> Text -> m (Auth0Response ResourceServerResponse)
+runDeleteResourceServer (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/resource-servers/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/resource-servers/{id}
@@ -100,7 +100,7 @@ type ResourceServerUpdate = ResourceServerCreate
 
 runUpdateResourceServer
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> ResourceServerUpdate -> m (Auth0Response ResourceServerResponse)
-runUpdateResourceServer a i o =
+  => TokenAuth -> Text -> ResourceServerUpdate -> m (Auth0Response ResourceServerResponse)
+runUpdateResourceServer (TokenAuth tenant accessToken) i o =
   let api = API Update ("/api/v2/resource-servers/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])

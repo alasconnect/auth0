@@ -28,18 +28,18 @@ instance ToRequest SAMLAcceptRequest where
 runSAMLAcceptRequest
   :: (MonadIO m, MonadThrow m)
   => Auth -> ClientId -> SAMLAcceptRequest -> m (Auth0Response Text)
-runSAMLAcceptRequest a cid o =
+runSAMLAcceptRequest (Auth tenant) cid o =
   let api = API Get ("/samlp/" <> (encodeUtf8 . untag) cid)
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) Nothing
 
 -- GET /samlp/metadata/YOUR_CLIENT_ID
 
 runSAMLMetadata
   :: (MonadIO m, MonadThrow m)
   => Auth -> ClientId -> m (Auth0Response Text)
-runSAMLMetadata a cid =
+runSAMLMetadata (Auth tenant) cid =
   let api = API Get ("/samlp/metadata/" <> (encodeUtf8 . untag) cid)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
 
 -- IdP - Initiated SSO Flow
 -- POST /login/callback
@@ -59,7 +59,7 @@ instance ToRequest IdP where
 runSAMLIdP
   :: (MonadIO m, MonadThrow m)
   => Auth -> IdP -> m (Auth0Response Text)
-runSAMLIdP a o =
+runSAMLIdP (Auth tenant) o =
   let api = API Post "/login/callback"
       hdr = [("Content-Type", "application/x-www-form-urlencoded")]
-  in execRequest a api (Just o) (Nothing :: Maybe ()) (Just hdr)
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just hdr)

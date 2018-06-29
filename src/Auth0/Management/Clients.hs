@@ -149,10 +149,10 @@ instance FromJSON ClientResponse where
 
 runGetClients
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Maybe Client -> m (Auth0Response [ClientResponse])
-runGetClients a o =
+  => TokenAuth -> Maybe Client -> m (Auth0Response [ClientResponse])
+runGetClients (TokenAuth tenant accessToken) o =
   let api = API Get "/api/v2/clients"
-  in execRequest a api o (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api o (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/clients
@@ -196,10 +196,10 @@ instance ToJSON ClientCreate where
 
 runCreateClient
   :: (MonadIO m, MonadThrow m)
-  => Auth -> ClientCreate -> m (Auth0Response ClientResponse)
-runCreateClient a o =
+  => TokenAuth -> ClientCreate -> m (Auth0Response ClientResponse)
+runCreateClient (TokenAuth tenant accessToken) o =
   let api = API Post "/api/v2/clients"
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/clients/{id}
@@ -220,20 +220,20 @@ instance ToRequest ClientGet where
 
 runGetClient
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> ClientGet -> m (Auth0Response ClientResponse)
-runGetClient a i o =
+  => TokenAuth -> Text -> ClientGet -> m (Auth0Response ClientResponse)
+runGetClient (TokenAuth tenant accessToken) i o =
   let api = API Get ("/api/v2/clients/" <> encodeUtf8 i)
-  in execRequest a api (Just o) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/clients/{id}
 
 runDeleteClient
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ())
-runDeleteClient a i =
+  => TokenAuth -> Text -> m (Auth0Response ())
+runDeleteClient (TokenAuth tenant accessToken) i =
   let api = API Delete ("/api/v2/clients/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/clients/{id}
@@ -242,17 +242,17 @@ type ClientUpdate = ClientCreate
 
 runUpdateClient
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> ClientUpdate -> m (Auth0Response ())
-runUpdateClient a i o =
+  => TokenAuth -> Text -> ClientUpdate -> m (Auth0Response ())
+runUpdateClient (TokenAuth tenant accessToken) i o =
   let api = API Update ("/api/v2/clients/" <> encodeUtf8 i)
-  in execRequest a api (Nothing :: Maybe ()) (Just o) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/clients/{id}/rotate-secret
 
 runClientRotateSecret
   :: (MonadIO m, MonadThrow m)
-  => Auth -> Text -> m (Auth0Response ClientResponse)
-runClientRotateSecret a i =
+  => TokenAuth -> Text -> m (Auth0Response ClientResponse)
+runClientRotateSecret (TokenAuth tenant accessToken) i =
   let api = API Update ("/api/v2/clients/" <> encodeUtf8 i <> "/rotate-secret")
-  in execRequest a api (Nothing :: Maybe ()) (Nothing :: Maybe ()) Nothing
+  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
