@@ -38,3 +38,9 @@ export AUTH0_CONNECTION=<connection>
 
 nix-shell --run 'cabal test --show-details=always --test-options=--color'
 ```
+
+# Developing
+
+```bash
+nix-shell --run 'ghcid --command="cabal new-repl auth0"'
+```

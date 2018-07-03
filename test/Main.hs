@@ -1,6 +1,9 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Main where
 
 --------------------------------------------------------------------------------
+import Data.Aeson
 import qualified Data.ByteString.Char8 as BS (pack)
 import Data.Maybe
 import Data.Monoid ((<>))
@@ -12,6 +15,7 @@ import Test.Hspec
 --------------------------------------------------------------------------------
 import Auth0.Authentication.GetToken
 import Auth0.Authentication.Signup
+import Auth0.Management.Users
 import Auth0.Types
 --------------------------------------------------------------------------------
 
@@ -46,7 +50,7 @@ main = do
     describe "Authentication.Signup" $
       it "Signup" $ do
         let ath = mkAuth ((BS.pack . fromJust) tnt)
-            pay = Signup 
+            pay = Signup
                     ((mkClientId . pack . fromJust) cid)
                     usr
                     pwd
@@ -59,7 +63,7 @@ main = do
     describe "Authentication.GetToken" $
       it "Resource Owner Password" $ do
         let ath = mkAuth ((BS.pack . fromJust) tnt)
-            pay = GetTokenResourceOwner 
+            pay = GetTokenResourceOwner
                     Password
                     ((mkClientId . pack . fromJust) cid)
                     ((Just . mkClientSecret . pack . fromJust) cst)
@@ -74,3 +78,19 @@ main = do
         case resPayload res of
           Nothing   -> return ()
           Just res' -> tokenType res' `shouldBe` "Bearer"
+
+    describe "Management.Users" $
+      it "Get Users" $ do
+        let auth = mkAuth ((BS.pack . fromJust) tnt)
+            pay = GetTokenClientCreds
+                  ClientCredentials
+                  (mkClientId . pack . fromJust $ cid)
+                  (mkClientSecret . pack . fromJust $ cst)
+                  (pack . fromJust $ aud)
+        tknResponse <- runGetToken auth pay
+        let tokenAuth = fromJust $ do
+             tkn <- accessToken <$> resPayload tknResponse
+             pure $ mkTokenAuth ((BS.pack . fromJust) tnt) tkn
+        res :: Auth0Response [UserResponse Value Value] <- runGetUsers tokenAuth Nothing
+        resError res `shouldBe` Nothing
+        isJust (resPayload res) `shouldBe` True
