@@ -73,6 +73,7 @@ test-suite auth0-test
   main-is:             Main.hs
   build-depends:       auth0
                      , base >= 4.9 && <= 4.11
+                     , aeson
                      , bytestring
                      , hspec
                      , random

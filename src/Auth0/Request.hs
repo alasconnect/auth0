@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Auth0.Request where
 
@@ -27,7 +28,7 @@ flattenMap t = fmap (\(k, v) -> (t <> "[" <> k <> "]", Just v)) . toList
 
 -- | Execute a request against an API endpoint.
 execRequest
-  :: (MonadIO m, MonadThrow m, ToRequest a, ToJSON b, FromJSON c, Show b)
+  :: forall m a b c. (MonadIO m, MonadThrow m, ToRequest a, ToJSON b, FromJSON c, Show b)
   => Tenant                           -- ^ Tenant to connect to
   -> API                              -- ^ API call - (API "POST" "/api")
   -> Maybe a                          -- ^ Optional request query
@@ -48,12 +49,13 @@ execRequest t (API m p) a b hs = do
     let code = getResponseStatusCode res
         hdrs = fromList (getResponseHeaders res)
         resp = Auth0Response code Nothing hdrs req Nothing
+        body = getResponseBody res
     in case code of
-      200 -> return resp { resPayload = decode (getResponseBody res) }
+      200 ->
+        case eitherDecode body :: Either String c of
+          Left _ -> return resp
+          Right response -> return $ resp { resPayload = Just response }
       _   ->
-        case decode (getResponseBody res) :: Maybe Auth0Error of
-          Nothing   ->
-            let nil  = Just ""
-                err  = Auth0Error code nil nil nil nil nil
-            in return resp { resError = Just err }
-          Just err' -> return resp { resError = Just err' }
+        case eitherDecode body :: Either String Auth0Error of
+          Left _ -> return resp
+          Right err'     -> return $ resp { resError = Just err' }
