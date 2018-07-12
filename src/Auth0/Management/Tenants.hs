@@ -42,7 +42,7 @@ data ChangePassword
   , html    :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''ChangePassword
+deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''ChangePassword
 
 data GuardianMfaPage
   = GuardianMfaPage
@@ -50,7 +50,7 @@ data GuardianMfaPage
   , html    :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''GuardianMfaPage
+deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''GuardianMfaPage
 
 data ErrorPage
   = ErrorPage
@@ -59,7 +59,7 @@ data ErrorPage
   , url         :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''ErrorPage
+deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''ErrorPage
 
 data Flags
   = Flags
@@ -70,7 +70,7 @@ data Flags
   , enablePipeline2         :: Maybe Bool
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''Flags
+deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''Flags
 
 data TenantSettingResponse
   = TenantSettingResponse
@@ -88,7 +88,7 @@ data TenantSettingResponse
   , sessionLifetime   :: Maybe Double
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''TenantSettingResponse
+deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''TenantSettingResponse
 
 runGetTenantSettings
   :: (MonadIO m, MonadThrow m)

@@ -58,7 +58,7 @@ data ConnectionResponse
 
 instance FromJSON ConnectionResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetConnections
   :: (MonadIO m, MonadThrow m)
@@ -84,7 +84,7 @@ data Options
 
 instance ToJSON Options where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data ConnectionCreate
   = ConnectionCreate
@@ -98,7 +98,7 @@ data ConnectionCreate
 
 instance ToJSON ConnectionCreate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateConnection
   :: (MonadIO m, MonadThrow m)
@@ -152,7 +152,7 @@ data ConnectionUpdate
 
 instance ToJSON ConnectionUpdate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runUpdateConnection
   :: (MonadIO m, MonadThrow m)

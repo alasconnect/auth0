@@ -37,7 +37,7 @@ data ResourceServerResponse
 
 instance FromJSON ResourceServerResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetResourceServers
   :: (MonadIO m, MonadThrow m)
@@ -64,7 +64,7 @@ data ResourceServerCreate
 
 instance ToJSON ResourceServerCreate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateResourceServer
   :: (MonadIO m, MonadThrow m)

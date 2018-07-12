@@ -52,7 +52,7 @@ data DeviceCredentialResponse
 
 instance FromJSON DeviceCredentialResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = f }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
     where
       f "type" = "ctype"
       f v      = camelTo2 '_' v
@@ -78,7 +78,7 @@ data DeviceCredentialCreate
 
 instance ToJSON DeviceCredentialCreate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = f }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
     where
       f "ctype" = "type"
       f v       = camelTo2 '_' v

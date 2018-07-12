@@ -32,7 +32,7 @@ data Guardian
 
 instance FromJSON Guardian where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetGuardians
   :: (MonadIO m, MonadThrow m)
@@ -57,7 +57,7 @@ data Enrollment
 
 instance FromJSON Enrollment where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetGuardianEnrollments
   :: (MonadIO m, MonadThrow m)
@@ -87,11 +87,11 @@ data Template
 
 instance FromJSON Template where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 instance ToJSON Template where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetGuardianTemplate
   :: (MonadIO m, MonadThrow m)
@@ -124,7 +124,7 @@ data PushNotification
 
 instance FromJSON PushNotification where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetGuardianPushNotification
   :: (MonadIO m, MonadThrow m)
@@ -149,7 +149,7 @@ data GuardianEnrollmentTicket
 
 instance ToJSON GuardianEnrollmentTicket where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data GuardianEnrollmentTicketResponse
   = GuardianEnrollmentTicketResponse
@@ -159,7 +159,7 @@ data GuardianEnrollmentTicketResponse
 
 instance FromJSON GuardianEnrollmentTicketResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateGuardianEnrollmentTicket
   :: (MonadIO m, MonadThrow m)
@@ -176,7 +176,7 @@ data GuardianFactorUpdate
   { enabled :: Bool
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { fieldLabelModifier = camelTo2 '_' } ''GuardianFactorUpdate
+deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''GuardianFactorUpdate
 
 runUpdateGuardianFactor
   :: (MonadIO m, MonadThrow m)

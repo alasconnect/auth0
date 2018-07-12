@@ -49,7 +49,7 @@ data Credentials
 
 instance FromJSON Credentials where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data EmailProviderResponse
   = EmailProviderResponse
@@ -62,7 +62,7 @@ data EmailProviderResponse
 
 instance FromJSON EmailProviderResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetEmailProviders
   :: (MonadIO m, MonadThrow m)
@@ -91,7 +91,7 @@ data CredentialsUpdate
 
 instance ToJSON CredentialsUpdate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data EmailProviderUpdate
   = EmailProviderUpdate
@@ -104,7 +104,7 @@ data EmailProviderUpdate
 
 instance ToJSON EmailProviderUpdate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runUpdateEmailProvider
   :: (MonadIO m, MonadThrow m)

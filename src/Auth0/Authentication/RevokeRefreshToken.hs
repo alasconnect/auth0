@@ -24,7 +24,7 @@ data RevokeRefreshToken
 
 instance ToJSON RevokeRefreshToken where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runRevokeRefreshToken
   :: (MonadIO m, MonadThrow m)

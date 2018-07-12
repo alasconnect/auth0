@@ -31,7 +31,7 @@ data UserProfileResponse
 
 instance FromJSON UserProfileResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runUserProfile
   :: (MonadIO m, MonadThrow m)

@@ -43,7 +43,7 @@ data Impersonate
 
 instance ToJSON Impersonate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runImpersonate
   :: (MonadIO m, MonadThrow m)
