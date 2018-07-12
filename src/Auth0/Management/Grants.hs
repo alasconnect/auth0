@@ -43,7 +43,7 @@ data GrantResponse
 
 instance FromJSON GrantResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetGrants
   :: (MonadIO m, MonadThrow m)

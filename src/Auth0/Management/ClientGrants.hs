@@ -46,7 +46,7 @@ data ClientGrantResponse
 
 instance FromJSON ClientGrantResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetClientGrants
   :: (MonadIO m, MonadThrow m)
@@ -67,7 +67,7 @@ data ClientGrantCreate
 
 instance ToJSON ClientGrantCreate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateClientGrant
   :: (MonadIO m, MonadThrow m)

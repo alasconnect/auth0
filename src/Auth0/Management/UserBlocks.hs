@@ -48,7 +48,7 @@ data UserBlockResponse
 
 instance FromJSON UserBlockResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetUserBlocks
   :: (MonadIO m, MonadThrow m)

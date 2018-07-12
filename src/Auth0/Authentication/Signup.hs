@@ -28,7 +28,7 @@ data Signup
 
 instance ToJSON Signup where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data SignupResponse
   = SignupResponse
@@ -39,7 +39,7 @@ data SignupResponse
 
 instance FromJSON SignupResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runSignup
   :: (MonadIO m, MonadThrow m)

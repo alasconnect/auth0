@@ -37,14 +37,14 @@ data JobResponse
 
 instance FromJSON JobResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = f }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
     where
       f "text" = "jtype"
       f v      = camelTo2 '_' v
 
 instance ToJSON JobResponse where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = f }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
     where
       f "jtext" = "type"
       f v       = camelTo2 '_' v
@@ -79,7 +79,7 @@ data JobResultsResponse
 
 instance FromJSON JobResultsResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetJobResults
   :: (MonadIO m, MonadThrow m)
@@ -101,7 +101,7 @@ data JobExportCreate
 
 instance ToJSON JobExportCreate where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateJobExport
   :: (MonadIO m, MonadThrow m)
@@ -127,7 +127,7 @@ data JobVerificationEmail
 
 instance ToJSON JobVerificationEmail where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data JobVerificationEmailResponse
   = JobVerificationEmailResponse
@@ -139,7 +139,7 @@ data JobVerificationEmailResponse
 
 instance FromJSON JobVerificationEmailResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateJobVerificationEmail
   :: (MonadIO m, MonadThrow m)

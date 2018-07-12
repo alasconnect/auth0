@@ -28,7 +28,7 @@ data TicketEmailVerification
 
 instance ToJSON TicketEmailVerification where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Response
 
@@ -39,7 +39,7 @@ data TicketResponse
 
 instance FromJSON TicketResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateTicketEmailVerification
   :: (MonadIO m, MonadThrow m)
@@ -63,7 +63,7 @@ data TicketChangePassword
 
 instance ToJSON TicketChangePassword where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runCreateTicketChangePassword
   :: (MonadIO m, MonadThrow m)

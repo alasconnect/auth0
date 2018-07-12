@@ -30,7 +30,7 @@ data GetToken
 
 instance ToJSON GetToken where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Authorize Code (PKCE)
 
@@ -45,7 +45,7 @@ data GetTokenPKCE
 
 instance ToJSON GetTokenPKCE where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Client Credentials
 
@@ -59,7 +59,7 @@ data GetTokenClientCreds
 
 instance ToJSON GetTokenClientCreds where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Resource Owner Password
 
@@ -77,7 +77,7 @@ data GetTokenResourceOwner
 
 instance ToJSON GetTokenResourceOwner where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Request Headers
 
@@ -101,7 +101,7 @@ data GetTokenResponse
 
 instance FromJSON GetTokenResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetToken
   :: (MonadIO m, MonadThrow m, ToJSON a, Show a)
@@ -125,7 +125,7 @@ data GetTokenResourceOwnerMFA
 
 instance ToJSON GetTokenResourceOwnerMFA where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Response
 
@@ -138,7 +138,7 @@ data GetTokenResourceOwnerMFAResponse
 
 instance FromJSON GetTokenResourceOwnerMFAResponse where
   parseJSON =
-    genericParseJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetTokenMFA
   :: (MonadIO m, MonadThrow m)
@@ -164,7 +164,7 @@ data GetTokenVerifyMFAOTP
 
 instance ToJSON GetTokenVerifyMFAOTP where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 --------------------------------------------------------------------------------
 -- POST /oauth/token
@@ -183,7 +183,7 @@ data GetTokenVerifyMFAOOB
 
 instance ToJSON GetTokenVerifyMFAOOB where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Verify MFA using a recovery code
 
@@ -198,7 +198,7 @@ data GetTokenVerifyRecoveryCode
 
 instance ToJSON GetTokenVerifyRecoveryCode where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 -- Refresh Token
 
@@ -212,4 +212,4 @@ data GetTokenRefresh
 
 instance ToJSON GetTokenRefresh where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }

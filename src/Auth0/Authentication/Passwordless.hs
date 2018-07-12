@@ -47,7 +47,7 @@ data GetCodeOrLink
 
 instance ToJSON GetCodeOrLink where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runGetCodeOrLink
   :: (MonadIO m, MonadThrow m)
@@ -70,7 +70,7 @@ data AuthenticateUser
 
 instance ToJSON AuthenticateUser where
   toJSON =
-    genericToJSON defaultOptions { fieldLabelModifier = camelTo2 '_' }
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 runAuthenticateUser
   :: (MonadIO m, MonadThrow m)
