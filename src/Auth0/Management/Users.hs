@@ -1,57 +1,21 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Auth0.Management.Users where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.TH
+import Data.Proxy
 import Data.Map hiding (drop)
-import Data.Monoid ((<>))
 import Data.Text hiding (drop)
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users
-
--- Request
-
-data User
-  = User
-  { uPerPage       :: Maybe Int
-  , uPage          :: Maybe Int
-  , uIncludeTotals :: Maybe Bool
-  , uSort          :: Maybe Text
-  , uConnection    :: Maybe Text
-  , uFields        :: Maybe Text
-  , uIncludeFields :: Maybe Text
-  , uQ             :: Maybe Text
-  , uSearchEngine  :: Maybe Text
-  } deriving (Show)
-
-instance ToRequest User where
-  toRequest (User a b c d e f g h i) =
-    [ toField "per_page" a
-    , toField "page" b
-    , toField "include_totals" c
-    , toField "sort" d
-    , toField "connection" e
-    , toField "fields" f
-    , toField "include_fields" g
-    , toField "q" h
-    , toField "search_engine" i
-    ]
-
--- Response
 
 data ProfileData
   = ProfileData
@@ -65,7 +29,13 @@ data ProfileData
   , pdFamilyName    :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' . drop 2 } ''ProfileData
+instance ToJSON ProfileData where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance FromJSON ProfileData where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data Identity
   = Identity
@@ -116,19 +86,42 @@ data UserResponse appMd userMd
   , urFamilyName    :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' . drop 2 } ''UserResponse
+instance (ToJSON appMd, ToJSON userMd) => ToJSON (UserResponse appMd userMd) where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetUsers
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => TokenAuth -> Maybe User -> m (Auth0Response [UserResponse appMd userMd])
-runGetUsers (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/users"
-  in execRequest tenant api o (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+instance (FromJSON appMd, FromJSON userMd) => FromJSON (UserResponse appMd userMd) where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+type UsersGetApi appMd userMd
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam "per_page" Int
+  :> QueryParam "page" Int
+  :> QueryParam "include_totals" Bool
+  :> QueryParam "sort" Text
+  :> QueryParam "connection" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Text
+  :> QueryParam "q" Text
+  :> QueryParam "search_engine" Text
+  :> Get '[JSON] [UserResponse appMd userMd]
+
+usersGet :: (FromJSON appMd, ToJSON appMd, FromJSON userMd, ToJSON userMd)
+  => AccessToken
+  -> Maybe Int
+  -> Maybe Int
+  -> Maybe Bool
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text
+  -> Maybe Text
+  -> ClientM [UserResponse appMd userMd]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/users
-
--- Request
 
 data UserCreate appMd userMd
   = UserCreate
@@ -149,56 +142,60 @@ instance (ToJSON appMd, ToJSON userMd) => ToJSON (UserCreate appMd userMd) where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' . drop 2 }
 
-runCreateUser
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd, ToJSON appMd, ToJSON userMd, Show appMd, Show userMd)
-  => TokenAuth -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
-runCreateUser (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/users"
-      authHeader = Just [mkAuthHeader accessToken]
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) authHeader
+type UserCreateApi appMd userMd
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] (UserCreate appMd userMd)
+  :> Post '[JSON] [UserResponse appMd userMd]
+
+userCreate :: (FromJSON appMd, ToJSON appMd, FromJSON userMd, ToJSON userMd)
+  => AccessToken
+  -> UserCreate appMd userMd
+  -> ClientM [UserResponse appMd userMd]
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users/{id}
 
-data UserGet
-  = UserGet
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Text
-  } deriving (Show)
+type UserGetApi appMd userMd
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Text
+  :> Get '[JSON] (UserResponse appMd userMd)
 
-instance ToRequest UserGet where
-  toRequest (UserGet a b) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    ]
-
-runGetUser
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => TokenAuth -> Text -> Maybe UserGet -> m (Auth0Response (UserResponse appMd userMd))
-runGetUser (TokenAuth tenant accessToken) i o =
-  let api = API Get ("/api/v2/users/" <> encodeUtf8 i)
-      authHeader = Just [mkAuthHeader accessToken]
-  in execRequest tenant api o (Nothing :: Maybe ()) authHeader
+userGet :: (FromJSON appMd, ToJSON appMd, FromJSON userMd, ToJSON userMd)   
+  => AccessToken
+  -> Text
+  -> Maybe Text
+  -> Maybe Text
+  -> ClientM (UserResponse appMd userMd)
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/users/{id}
 
-runDeleteUser
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteUser (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] NoContent
+
+userDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/users/{id}
 
-runUpdateUser
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd, ToJSON appMd, ToJSON userMd, Show appMd, Show userMd)
-  => TokenAuth -> Text -> UserCreate appMd userMd -> m (Auth0Response (UserResponse appMd userMd))
-runUpdateUser (TokenAuth tenant accessToken) i o =
-  let api = API Update ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type UserUpdateApi appMd userMd
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> ReqBody '[JSON] (UserCreate appMd userMd)
+  :> Patch '[JSON] (UserResponse appMd userMd)
+
+userUpdate :: (FromJSON appMd, ToJSON appMd, FromJSON userMd, ToJSON userMd)
+  => AccessToken
+  -> Text
+  -> UserCreate appMd userMd
+  -> ClientM (UserResponse appMd userMd)
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users/{id}/enrollments
@@ -223,37 +220,18 @@ instance FromJSON UserEnrollment where
       f "type" = "etype"
       f v      = camelTo2 '_' v
 
-runGetUserEnrollments
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response [UserEnrollment])
-runGetUserEnrollments (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/users/" <> encodeUtf8 i <> "/enrollments")
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserEnrollmentGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Get '[JSON] [UserEnrollment]
+
+userEnrollmentGet ::
+     AccessToken
+  -> Text
+  -> ClientM [UserEnrollment]
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users/{id}/logs
-
--- Request
-
-data UserLogGet
-  = UserLogGet
-  { ulgUserId        :: Text
-  , ulgPage          :: Maybe Int
-  , ulgPerPage       :: Maybe Int
-  , ulgSort          :: Maybe Text
-  , ulgIncludeTotals :: Maybe Bool
-  } deriving (Show)
-
-instance ToRequest UserLogGet where
-  toRequest (UserLogGet a b c d e) =
-    [ toField "user_id" a
-    , toField "page" b
-    , toField "per_page" c
-    , toField "sort" d
-    , toField "include_totals" e
-    ]
-
--- Response
 
 data UserLog
   = UserLog
@@ -271,41 +249,65 @@ instance FromJSON UserLog where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' . drop 2 }
 
-runGetUserLogs
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> UserLogGet -> m (Auth0Response [UserLog])
-runGetUserLogs (TokenAuth tenant accessToken) i o =
-  let api = API Get ("/api/v2/users/" <> encodeUtf8 i <> "/logs")
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserLogGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> QueryParam' '[Required] "user_id" Text
+  :> QueryParam "page" Int
+  :> QueryParam "per_page" Int
+  :> QueryParam "sort" Text
+  :> QueryParam "include_totals" Bool
+  :> Get '[JSON] [UserLog]
+
+userLogGet ::
+     AccessToken
+  -> Text
+  -> Text
+  -> Maybe Int
+  -> Maybe Int
+  -> Maybe Text
+  -> Maybe Bool
+  -> ClientM [UserLog]
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/users/{id}/multifactor/{provider}
 
 data MultifactorProvider = Duo | GoogleAuthenticator
 
-instance Show MultifactorProvider where
-  show Duo                 = "duo"
-  show GoogleAuthenticator = "google-authenticator"
+instance ToHttpApiData MultifactorProvider where
+  toUrlPiece Duo = "duo"
+  toUrlPiece GoogleAuthenticator = "google-authenticator"
 
-runDeleteUserProvider
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> MultifactorProvider -> m (Auth0Response ())
-runDeleteUserProvider (TokenAuth tenant accessToken) i j =
-  let api = API Delete ("/api/v2/users/" <> encodeUtf8 i <>
-                        "/multifactor/" <> (encodeUtf8 . pack . show) j)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserMultifactorProviderDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> "multifactor"
+  :> Capture "provider" MultifactorProvider
+  :> Delete '[JSON] NoContent
+
+userMultifactorProviderDelete ::
+     AccessToken
+  -> Text
+  -> MultifactorProvider
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/users/{id}/identities/{provider}/{user_id}
 
-runDeleteUserIdentity
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> Text -> Text -> m (Auth0Response Identity)
-runDeleteUserIdentity (TokenAuth tenant accessToken)  i j k =
-  let api = API Delete ("/api/v2/users/" <> encodeUtf8 i <>
-                        "/identities/" <> encodeUtf8 j <>
-                        "/" <> encodeUtf8 k)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserMultifactorProviderDeleteUserApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> "identities"
+  :> Capture "provider" MultifactorProvider
+  :> Capture "user_id" Text
+  :> Delete '[JSON] Identity
+
+userMultifactorProviderDeleteUser ::
+     AccessToken
+  -> Text
+  -> MultifactorProvider
+  -> Text
+  -> ClientM Identity
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/users/{id}/recovery-code-regeneration
@@ -319,12 +321,16 @@ instance FromJSON GuardianRecoveryCode where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runUserRecoveryCodeRegeneration
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response GuardianRecoveryCode)
-runUserRecoveryCodeRegeneration (TokenAuth tenant accessToken) i =
-  let api = API Post ("/api/v2/users/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserRecoveryCodeCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> "recovery-code-regeneration"
+  :> Post '[JSON] GuardianRecoveryCode
+
+userRecoveryCodeCreate ::
+     AccessToken
+  -> Text
+  -> ClientM GuardianRecoveryCode
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/users/{id}/identities
@@ -341,9 +347,58 @@ instance ToJSON LinkAccount where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' . drop 2 }
 
-runUserLinkAccount
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> LinkAccount -> m (Auth0Response [Identity])
-runUserLinkAccount (TokenAuth tenant accessToken) i o =
-  let api = API Post ("/api/v2/users/" <> encodeUtf8 i <> "/identities")
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type UserLinkAccountApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] LinkAccount
+  :> Post '[JSON] [Identity]
+
+userLinkAccount ::
+     AccessToken
+  -> LinkAccount
+  -> ClientM [Identity]
+
+--------------------------------------------------------------------------------
+
+type UsersPolyApi appMd userMd
+  =  "api"
+  :> "v2"
+  :> "users"
+  :> (    UsersGetApi appMd userMd
+     :<|> UserCreateApi appMd userMd
+     :<|> UserGetApi appMd userMd
+     :<|> UserUpdateApi appMd userMd
+     )
+
+type UsersApi
+  =  "api"
+  :> "v2"
+  :> "users"
+  :> (    UserDeleteApi
+     :<|> UserEnrollmentGetApi
+     :<|> UserLogGetApi
+     :<|> UserMultifactorProviderDeleteApi
+     :<|> UserMultifactorProviderDeleteUserApi
+     :<|> UserRecoveryCodeCreateApi
+     :<|> UserLinkAccountApi
+     )
+
+usersPolyApi :: Proxy (UsersPolyApi appMd userMd)
+usersPolyApi = Proxy
+
+usersApi :: Proxy UsersApi
+usersApi = Proxy
+
+usersGet
+  :<|> userCreate
+  :<|> userGet
+  :<|> userUpdate
+  = client usersPolyApi
+
+userDelete
+  :<|> userEnrollmentGet
+  :<|> userLogGet
+  :<|> userMultifactorProviderDelete
+  :<|> userMultifactorProviderDeleteUser
+  :<|> userRecoveryCodeCreate
+  :<|> userLinkAccount
+  = client usersApi

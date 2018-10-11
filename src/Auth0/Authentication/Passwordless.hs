@@ -1,17 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Authentication.Passwordless where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Text
 import Data.Map
+import Data.Proxy
+import Data.Text
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
@@ -37,7 +34,7 @@ instance ToJSON SendType where
 
 data GetCodeOrLink
   = GetCodeOrLink
-  { clientId    :: ClientId
+  { clientId    :: Text
   , connection  :: ConnectionType
   , email       :: Maybe Text
   , phoneNumber :: Maybe Text
@@ -49,22 +46,30 @@ instance ToJSON GetCodeOrLink where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetCodeOrLink
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> GetCodeOrLink -> m (Auth0Response ())
-runGetCodeOrLink (Auth tenant) o =
-  let api = API Post "/passwordless/start"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing
+type GetCodeOrLinkApi
+  =  "passwordless"
+  :> "start"
+  :> ReqBody '[JSON] GetCodeOrLink
+  :> Post '[JSON] NoContent
+
+getCodeOrLinkApi :: Proxy GetCodeOrLinkApi
+getCodeOrLinkApi = Proxy
+
+getCodeOrLink ::
+     GetCodeOrLink
+  -> ClientM NoContent
+
+getCodeOrLink = client getCodeOrLinkApi
 
 -- POST /oauth/ro
 
 data AuthenticateUser
   = AuthenticateUser
-  { clientId   :: ClientId
+  { clientId   :: Text
   , connection :: ConnectionType
   , grantType  :: GrantType
   , username   :: Text
-  , password   :: Text           -- ^ User's verification code
+  , password   :: Text
   , scope      :: Maybe Text
   } deriving (Generic, Show)
 
@@ -72,9 +77,17 @@ instance ToJSON AuthenticateUser where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runAuthenticateUser
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> AuthenticateUser -> m (Auth0Response ())
-runAuthenticateUser (Auth tenant) o =
-  let api = API Post "/oauth/ro"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing
+type AuthenticateUserApi
+  =  "oath"
+  :> "ro"
+  :> ReqBody '[JSON] AuthenticateUser
+  :> Post '[JSON] NoContent
+
+authenticateUserApi :: Proxy AuthenticateUserApi
+authenticateUserApi = Proxy
+
+authenticateUser ::
+     AuthenticateUser
+  -> ClientM NoContent
+
+authenticateUser = client authenticateUserApi

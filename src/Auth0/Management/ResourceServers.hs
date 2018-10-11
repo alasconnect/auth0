@@ -1,25 +1,15 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.ResourceServers where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/resource-servers
-
--- Response
 
 data ResourceServerResponse
   = ResourceServerResponse
@@ -39,12 +29,16 @@ instance FromJSON ResourceServerResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetResourceServers
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> m (Auth0Response [ResourceServerResponse])
-runGetResourceServers (TokenAuth tenant accessToken) =
-  let api = API Get "/api/v2/resource-servers"
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/resource-servers
+
+type ResourceServersGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Get '[JSON] [ResourceServerResponse]
+
+resourceServersGet ::
+     AccessToken
+  -> ClientM [ResourceServerResponse]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/resource-servers
@@ -66,41 +60,78 @@ instance ToJSON ResourceServerCreate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateResourceServer
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> ResourceServerCreate -> m (Auth0Response [ResourceServerResponse])
-runCreateResourceServer (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/resource-servers"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ResourceServerCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] ResourceServerCreate
+  :> Post '[JSON] [ResourceServerResponse]
+
+resourceServerCreate ::
+     AccessToken
+  -> ResourceServerCreate
+  -> ClientM [ResourceServerResponse]
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/resource-servers/{id}
 
-runGetResourceServer
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ResourceServerResponse)
-runGetResourceServer (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/resource-servers/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ResourceServerGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Get '[JSON] ResourceServerResponse
+
+resourceServerGet ::
+     AccessToken
+  -> Text
+  -> ClientM ResourceServerResponse
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/resource-servers/{id}
 
-runDeleteResourceServer
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ResourceServerResponse)
-runDeleteResourceServer (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/resource-servers/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ResourceServerDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] ResourceServerResponse
+
+resourceServerDelete ::
+     AccessToken
+  -> Text
+  -> ClientM ResourceServerResponse
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/resource-servers/{id}
 
 type ResourceServerUpdate = ResourceServerCreate
 
-runUpdateResourceServer
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> ResourceServerUpdate -> m (Auth0Response ResourceServerResponse)
-runUpdateResourceServer (TokenAuth tenant accessToken) i o =
-  let api = API Update ("/api/v2/resource-servers/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ResourceServerUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> ReqBody '[JSON] ResourceServerUpdate
+  :> Patch '[JSON] ResourceServerResponse
+
+resourceServerUpdate ::
+     AccessToken
+  -> Text
+  -> ResourceServerUpdate
+  -> ClientM ResourceServerResponse
+
+--------------------------------------------------------------------------------
+
+type ResourceServerApi
+  =  "api"
+  :> "v2"
+  :> "resource-servers"
+  :> (    ResourceServersGetApi
+     :<|> ResourceServerCreateApi
+     :<|> ResourceServerGetApi
+     :<|> ResourceServerDeleteApi
+     :<|> ResourceServerUpdateApi
+     )
+
+resourceServerApi :: Proxy ResourceServerApi
+resourceServerApi = Proxy
+
+resourceServersGet
+  :<|> resourceServerCreate
+  :<|> resourceServerGet
+  :<|> resourceServerDelete
+  :<|> resourceServerUpdate
+  = client resourceServerApi

@@ -1,36 +1,16 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Emails where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Map
+import Data.Proxy
 import Data.Text
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/emails/provider
-
--- Request
-
-data EmailProvider
-  = EmailProvider
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  } deriving (Show)
-
-instance ToRequest EmailProvider where
-  toRequest (EmailProvider a b) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    ]
 
 -- Response
 
@@ -64,22 +44,31 @@ instance FromJSON EmailProviderResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetEmailProviders
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> EmailProvider -> m (Auth0Response [EmailProviderResponse])
-runGetEmailProviders (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/emails/provider"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/emails/provider
+
+type EmailProviderGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Text
+  :> Get '[JSON] [EmailProviderResponse]
+
+emailProviderGet ::
+     AccessToken
+  -> Maybe Text
+  -> Maybe Text
+  -> ClientM [EmailProviderResponse]
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/emails/provider
 
-runDeleteEmailProvider
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> m (Auth0Response ())
-runDeleteEmailProvider (TokenAuth tenant accessToken) =
-  let api = API Delete "/api/v2/emails/provider"
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type EmailProviderDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Delete '[JSON] NoContent
+
+emailProviderDelete ::
+     AccessToken
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/emails/provider
@@ -106,21 +95,49 @@ instance ToJSON EmailProviderUpdate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runUpdateEmailProvider
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> EmailProviderUpdate -> m (Auth0Response EmailProviderResponse)
-runUpdateEmailProvider (TokenAuth tenant accessToken) o =
-  let api = API Update "/api/v2/emails/provider"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type EmailProviderUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] EmailProviderUpdate
+  :> Patch '[JSON] EmailProviderResponse
+
+emailProviderUpdate ::
+     AccessToken
+  -> EmailProviderUpdate
+  -> ClientM EmailProviderResponse
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/emails/provider
 
 type EmailProviderCreate = EmailProviderUpdate
 
-runCreateEmailProvider
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> EmailProviderCreate -> m (Auth0Response EmailProviderResponse)
-runCreateEmailProvider (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/emails/provider"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type EmailProviderCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] EmailProviderCreate
+  :> Post '[JSON] EmailProviderResponse
+
+emailProviderCreate ::
+     AccessToken
+  -> EmailProviderCreate
+  -> ClientM EmailProviderResponse
+
+--------------------------------------------------------------------------------
+
+type EmailsApi
+  =  "api"
+  :> "v2"
+  :> "emails"
+  :> (
+          EmailProviderGetApi
+     :<|> EmailProviderDeleteApi
+     :<|> EmailProviderUpdateApi
+     :<|> EmailProviderCreateApi
+     )
+
+emailsApi :: Proxy EmailsApi
+emailsApi = Proxy
+
+emailProviderGet
+  :<|> emailProviderDelete
+  :<|> emailProviderUpdate
+  :<|> emailProviderCreate
+  = client emailsApi

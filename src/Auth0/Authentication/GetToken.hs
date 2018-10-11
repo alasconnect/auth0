@@ -1,18 +1,30 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Authentication.GetToken where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
+import Data.Proxy
 import Data.Text
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
+
+data GetTokenResponse
+  = GetTokenResponse
+  { accessToken  :: AccessToken
+  , refreshToken :: Maybe Text
+  , idToken      :: Maybe Text
+  , tokenType    :: Text
+  , expiresIn    :: Int
+  , recoveryCode :: Maybe Text
+  , scope        :: Maybe Text
+  } deriving (Generic, Show)
+
+instance FromJSON GetTokenResponse where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 --------------------------------------------------------------------------------
 -- POST /oauth/token
@@ -32,6 +44,17 @@ instance ToJSON GetToken where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
+type GetTokenApi
+  =  ReqBody '[JSON] GetToken
+  :> Post '[JSON] GetTokenResponse
+
+getToken ::
+     GetToken
+  -> ClientM GetTokenResponse
+
+--------------------------------------------------------------------------------
+-- POST /oauth/token
+
 -- Authorize Code (PKCE)
 
 data GetTokenPKCE
@@ -47,6 +70,17 @@ instance ToJSON GetTokenPKCE where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
+type GetTokenPKCEApi
+  =  ReqBody '[JSON] GetTokenPKCE
+  :> Post '[JSON] GetTokenResponse
+
+getTokenPKCE ::
+     GetTokenPKCE
+  -> ClientM GetTokenResponse
+
+--------------------------------------------------------------------------------
+-- POST /oauth/token
+
 -- Client Credentials
 
 data GetTokenClientCreds
@@ -60,6 +94,17 @@ data GetTokenClientCreds
 instance ToJSON GetTokenClientCreds where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+type GetTokenClientCredsApi
+  =  ReqBody '[JSON] GetTokenClientCreds
+  :> Post '[JSON] GetTokenResponse
+
+getTokenClientCreds ::
+     GetTokenClientCreds
+  -> ClientM GetTokenResponse
+
+--------------------------------------------------------------------------------
+-- POST /oauth/token
 
 -- Resource Owner Password
 
@@ -79,36 +124,34 @@ instance ToJSON GetTokenResourceOwner where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
--- Request Headers
+type GetTokenResourceOwnerApi
+  =  ReqBody '[JSON] GetTokenResourceOwner
+  :> Post '[JSON] GetTokenResponse
 
-data GetTokenResourceOwnerHeader
-  = GetTokenResourceOwnerHeader
-  { auth0ForwardFor :: Text
-  } deriving (Show)
+getTokenResourceOwner ::
+     GetTokenResourceOwner
+  -> ClientM GetTokenResponse
 
--- Response
+--------------------------------------------------------------------------------
 
-data GetTokenResponse
-  = GetTokenResponse
-  { accessToken  :: AccessToken
-  , refreshToken :: Maybe Text
-  , idToken      :: Maybe Text
-  , tokenType    :: Text
-  , expiresIn    :: Int
-  , recoveryCode :: Maybe Text
-  , scope        :: Maybe Text
-  } deriving (Generic, Show)
+type GetTokenAllApi
+  =  "oauth"
+  :> "token" :>
+  (
+       GetTokenApi
+  :<|> GetTokenPKCEApi
+  :<|> GetTokenClientCredsApi
+  :<|> GetTokenResourceOwnerApi
+  )
 
-instance FromJSON GetTokenResponse where
-  parseJSON =
-    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+getTokenApi :: Proxy GetTokenAllApi
+getTokenApi = Proxy
 
-runGetToken
-  :: (MonadIO m, MonadThrow m, ToJSON a, Show a)
-  => Auth -> a -> m (Auth0Response GetTokenResponse)
-runGetToken (Auth tenant) o =
-  let api = API Post "/oauth/token"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing
+getToken
+  :<|> getTokenPKCE
+  :<|> getTokenClientCreds
+  :<|> getTokenResourceOwner
+  = client getTokenApi
 
 --------------------------------------------------------------------------------
 -- POST /mfa/challenge
@@ -127,6 +170,15 @@ instance ToJSON GetTokenResourceOwnerMFA where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
+type GetTokenResourceOwnerMFAApi
+  = "/mfa/challenge"
+  :> ReqBody '[JSON] GetTokenResourceOwnerMFA
+  :> Post '[JSON] GetTokenResourceOwnerMFAResponse
+
+getTokenResourceOwnerMFA ::
+     GetTokenResourceOwnerMFA
+  -> ClientM GetTokenResourceOwnerMFAResponse
+
 -- Response
 
 data GetTokenResourceOwnerMFAResponse
@@ -140,14 +192,13 @@ instance FromJSON GetTokenResourceOwnerMFAResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetTokenMFA
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> GetTokenResourceOwnerMFA
-  -> m (Auth0Response GetTokenResourceOwnerMFAResponse)
-runGetTokenMFA (Auth tenant) o =
-  let api = API Post "/mfa/challenge"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing
+getTokenResourceOwnerMFAApi :: Proxy GetTokenResourceOwnerMFAApi
+getTokenResourceOwnerMFAApi = Proxy
 
+getTokenResourceOwnerMFA = client getTokenResourceOwnerMFAApi
+
+--------------------------------------------------------------------------------
+-- TODO: The following
 --------------------------------------------------------------------------------
 -- POST /oauth/token
 
