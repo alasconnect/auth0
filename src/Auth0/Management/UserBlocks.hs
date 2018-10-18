@@ -1,37 +1,15 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.UserBlocks where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/user-blocks
-
--- Request
-
-data UserBlock
-  = UserBlock
-  { identifier :: Text
-  } deriving (Show)
-
-instance ToRequest UserBlock where
-  toRequest (UserBlock a) =
-    [ toField "identifier" a
-    ]
-
--- Response
 
 data BlockedFor
   = BlockedFor
@@ -50,39 +28,75 @@ instance FromJSON UserBlockResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetUserBlocks
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> UserBlock -> m (Auth0Response BlockedFor)
-runGetUserBlocks (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/user-blocks"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/user-blocks
+
+type UserBlocksGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam' '[Required] "identifier" Text
+  :> Get '[JSON] UserBlockResponse
+
+userBlocksGet ::
+     AccessToken
+  -> Text
+  -> ClientM UserBlockResponse
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/user-blocks
 
-runDeleteUserBlock
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> UserBlock -> m (Auth0Response ())
-runDeleteUserBlock (TokenAuth tenant accessToken) o =
-  let api = API Delete "/api/v2/user-blocks"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserBlocksDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam' '[Required] "identifier" Text
+  :> Delete '[JSON] NoContent
+
+userBlocksDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/user-blocks/{id}
 
-runGetUserBlock
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response BlockedFor)
-runGetUserBlock (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/user-blocks/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserBlockGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Get '[JSON] UserBlockResponse
+
+userBlockGet ::
+     AccessToken
+  -> Text
+  -> ClientM UserBlockResponse
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/user-blocks/{id}
 
-runUnblockUserBlock
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response BlockedFor)
-runUnblockUserBlock (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/user-blocks/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UserBlockDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] NoContent
+
+userBlockDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
+
+--------------------------------------------------------------------------------
+
+type UserBlocksApi
+  =  "api"
+  :> "v2"
+  :> "user-blocks"
+  :> (    UserBlocksGetApi
+     :<|> UserBlocksDeleteApi
+     :<|> UserBlockGetApi
+     :<|> UserBlocksDeleteApi
+     )
+
+userBlocksApi :: Proxy UserBlocksApi
+userBlocksApi = Proxy
+
+userBlocksGet
+  :<|> userBlocksDelete
+  :<|> userBlockGet
+  :<|> userBlockDelete
+  = client userBlocksApi

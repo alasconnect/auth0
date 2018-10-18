@@ -1,46 +1,18 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Clients where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Map
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding (encodeUtf8)
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
--- GET /api/v2/clients
-
--- Request
-
-data Client
-  = Client
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  , page          :: Maybe Int
-  , perPage       :: Maybe Int
-  , includeTotals :: Maybe Bool
-  } deriving (Show)
-
-instance ToRequest Client where
-  toRequest (Client a b c d e) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    , toField "page" c
-    , toField "per_page" d
-    , toField "include_totals" e
-    ]
-
--- Response
+-- Response types
 
 data JwtConfiguration
   = JwtConfiguration
@@ -147,12 +119,26 @@ instance FromJSON ClientResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetClients
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Maybe Client -> m (Auth0Response [ClientResponse])
-runGetClients (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/clients"
-  in execRequest tenant api o (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/clients
+
+type ClientsGetApi
+  =  Header' '[Required] "Authorization" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Bool
+  :> QueryParam "page" Int
+  :> QueryParam "per_page" Int
+  :> QueryParam "include_totals" Bool
+  :> Get '[JSON] [ClientResponse]
+
+clientsGet ::
+     Text
+  -> Maybe Text
+  -> Maybe Bool
+  -> Maybe Int
+  -> Maybe Int
+  -> Maybe Bool
+  -> ClientM [ClientResponse]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/clients
@@ -194,65 +180,98 @@ instance ToJSON ClientCreate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateClient
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> ClientCreate -> m (Auth0Response ClientResponse)
-runCreateClient (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/clients"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ClientsPostApi
+  =  Header' '[Required] "Authorization" Text
+  :> ReqBody '[JSON] ClientCreate
+  :> Post '[JSON] ClientResponse
+
+clientsPost ::
+     Text
+  -> ClientCreate
+  -> ClientM ClientResponse
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/clients/{id}
 
-data ClientGet
-  = ClientGet
-  { id            :: Text
-  , fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  }
+type ClientGetApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "client_id" Text
+  :> QueryParam' '[Required] "id" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Bool
+  :> Get '[JSON] ClientResponse
 
-instance ToRequest ClientGet where
-  toRequest (ClientGet a b c) =
-    [ toField "id" a
-    , toField "fields" b
-    , toField "include_fields" c
-    ]
-
-runGetClient
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> ClientGet -> m (Auth0Response ClientResponse)
-runGetClient (TokenAuth tenant accessToken) i o =
-  let api = API Get ("/api/v2/clients/" <> encodeUtf8 i)
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+clientGet ::
+     Text
+  -> Text
+  -> Text
+  -> Maybe Text
+  -> Maybe Bool
+  -> ClientM ClientResponse
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/clients/{id}
 
-runDeleteClient
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteClient (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/clients/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ClientDeleteApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "client_id" Text
+  :> Delete '[JSON] NoContent
+
+clientDelete ::
+     Text
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/clients/{id}
 
 type ClientUpdate = ClientCreate
 
-runUpdateClient
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> ClientUpdate -> m (Auth0Response ())
-runUpdateClient (TokenAuth tenant accessToken) i o =
-  let api = API Update ("/api/v2/clients/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ClientUpdateApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "client_id" Text
+  :> Patch '[JSON] NoContent
+
+clientUpdate ::
+     Text
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/clients/{id}/rotate-secret
 
-runClientRotateSecret
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ClientResponse)
-runClientRotateSecret (TokenAuth tenant accessToken) i =
-  let api = API Update ("/api/v2/clients/" <> encodeUtf8 i <> "/rotate-secret")
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ClientRotateSecretApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "client_id" Text
+  :> "rotate-secret"
+  :> Post '[JSON] ClientResponse
+
+clientRotateSecret ::
+     Text
+  -> Text
+  -> ClientM ClientResponse
+
+--------------------------------------------------------------------------------
+
+type ClientsApi
+  =  "api"
+  :> "v2"
+  :> "clients"
+  :> (    ClientsGetApi
+     :<|> ClientsPostApi
+     :<|> ClientGetApi
+     :<|> ClientDeleteApi
+     :<|> ClientUpdateApi
+     :<|> ClientRotateSecretApi
+     )
+
+clientsApi :: Proxy ClientsApi
+clientsApi = Proxy
+
+clientsGet
+  :<|> clientsPost
+  :<|> clientGet
+  :<|> clientDelete
+  :<|> clientUpdate
+  :<|> clientRotateSecret
+  = client clientsApi

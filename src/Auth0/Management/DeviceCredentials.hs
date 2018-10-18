@@ -1,45 +1,18 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.DeviceCredentials where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/device-credentials
-
--- Request
-
-data DeviceCredential
-  = DeviceCredential
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  , userId        :: Maybe Text
-  , clientId      :: Maybe ClientId
-  , ctype         :: Maybe Text
-  } deriving (Show)
-
-instance ToRequest DeviceCredential where
-  toRequest (DeviceCredential a b c d e) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    , toField "user_id" c
-    , toField "client_id" d
-    , toField "type" e
-    ]
-
--- Response
 
 data DeviceCredentialResponse
   = DeviceCredentialResponse
@@ -57,12 +30,23 @@ instance FromJSON DeviceCredentialResponse where
       f "type" = "ctype"
       f v      = camelTo2 '_' v
 
-runGetDeviceCredentials
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> DeviceCredential -> m (Auth0Response [DeviceCredentialResponse])
-runGetDeviceCredentials (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/device-credentials"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type DeviceCredentialGetApi
+  =  Header' '[Required] "Authorization" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Bool
+  :> QueryParam "user_id" Text
+  :> QueryParam "client_id" ClientId
+  :> QueryParam "type" Text
+  :> Get '[JSON] [DeviceCredentialResponse]
+
+deviceCredentialGet ::
+     Text
+  -> Maybe Text
+  -> Maybe Bool
+  -> Maybe Text
+  -> Maybe ClientId
+  -> Maybe Text
+  -> ClientM [DeviceCredentialResponse]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/device-credentials
@@ -90,19 +74,41 @@ data DeviceCredentialId
 
 instance FromJSON DeviceCredentialId
 
-runCreateDeviceCredential
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> DeviceCredentialCreate -> m (Auth0Response DeviceCredentialId)
-runCreateDeviceCredential (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/device-credentials"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type DeviceCredentialCreateApi
+  =  Header' '[Required] "Authorization" Text
+  :> ReqBody '[JSON] DeviceCredentialCreate
+  :> Post '[JSON] DeviceCredentialId
+
+deviceCredentialCreate ::
+     Text
+  -> DeviceCredentialCreate
+  -> ClientM DeviceCredentialId
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/device-credentials/{id}
 
-runDeleteDeviceCredential
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response DeviceCredentialId)
-runDeleteDeviceCredential (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/device-credentials/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type DeviceCredentialDeleteApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "device_id" Text
+  :> Delete '[JSON] DeviceCredentialId
+
+deviceCredentialDelete ::
+     Text
+  -> Text
+  -> ClientM DeviceCredentialId
+
+--------------------------------------------------------------------------------
+
+type DeviceCredentialsApi
+  =  "api"
+  :> "v2"
+  :> "device-credentials"
+  :> (DeviceCredentialGetApi :<|> DeviceCredentialCreateApi :<|> DeviceCredentialDeleteApi)
+
+deviceCredentialsApi :: Proxy DeviceCredentialsApi
+deviceCredentialsApi = Proxy
+
+deviceCredentialGet
+  :<|> deviceCredentialCreate
+  :<|> deviceCredentialDelete
+  = client deviceCredentialsApi

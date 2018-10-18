@@ -1,27 +1,18 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE TemplateHaskell #-}
-
 module Auth0.Management.Guardian where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.TH
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/guardian/factors
-
--- Response
 
 data Guardian
   = Guardian
@@ -34,12 +25,104 @@ instance FromJSON Guardian where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetGuardians
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> m (Auth0Response [Guardian])
-runGetGuardians (TokenAuth tenant accessToken) =
-  let api = API Get "/api/v2/guardian/factors"
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type GuardianFactorsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Get '[JSON] [Guardian]
+
+guardianFactorsGet ::
+     AccessToken
+  -> ClientM [Guardian]
+
+--------------------------------------------------------------------------------
+-- PUT /api/v2/guardian/factors/{name}
+
+data GuardianFactorUpdate
+  = GuardianFactorUpdate
+  { enabled :: Bool
+  } deriving (Generic, Show)
+
+instance FromJSON GuardianFactorUpdate where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance ToJSON GuardianFactorUpdate where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+type GuardianFactorsUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "name" Text
+  :> ReqBody '[JSON] GuardianFactorUpdate
+  :> Put '[JSON] GuardianFactorUpdate
+
+guardianFactorsUpdate ::
+     AccessToken
+  -> Text
+  -> GuardianFactorUpdate
+  -> ClientM GuardianFactorUpdate
+
+--------------------------------------------------------------------------------
+-- GET /api/v2/guardian/factors/sms/templates
+
+data Template
+  = Template
+  { enrollmentMessage   :: Text
+  , verificationMessage :: Text
+  } deriving (Generic, Show)
+
+instance FromJSON Template where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance ToJSON Template where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+type GuardianFactorsSmsTemplatesGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Get '[JSON] [Template]
+
+guardianFactorsSmsTemplatesGet ::
+     AccessToken
+  -> ClientM [Template]
+
+--------------------------------------------------------------------------------
+-- PUT /api/v2/guardian/factors/sms/templates
+
+type GuardianFactorsSmsTemplatesUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Put '[JSON] Template
+
+guardianFactorsSmsTemplatesUpdate ::
+     AccessToken
+  -> ClientM Template
+
+--------------------------------------------------------------------------------
+-- GET /api/v2/guardian/factors/push-notification/providers/sns
+
+data PushNotification
+  = PushNotification
+  { awsAccessKeyId                :: Maybe Text
+  , awsSecretAccessKey            :: Maybe Text
+  , awsRegion                     :: Maybe Text
+  , snsApnsPlatformApplicationArn :: Maybe Text
+  , snsGcmPlatformApplicationArn  :: Maybe Text
+  } deriving (Generic, Show)
+
+instance FromJSON PushNotification where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+type GuardianPushNotificationGetApi
+  =  "push-notification"
+  :> "providers"
+  :> "sns"
+  :> Header' '[Required] "Authorization" AccessToken
+  :> Get '[JSON] PushNotification
+
+guardianPushNotificationGet ::
+     AccessToken
+  -> ClientM PushNotification
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/guardian/enrollments/{id}
@@ -59,79 +142,26 @@ instance FromJSON Enrollment where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetGuardianEnrollments
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response [Enrollment])
-runGetGuardianEnrollments (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/guardian/enrollments/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type GuardianEnrollmentsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Get '[JSON] [Enrollment]
+
+guardianEnrollmentsGet ::
+     AccessToken
+  -> ClientM [Enrollment]
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/guardian/enrollments/{id}
 
-runDeleteGuardianEnrollment
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteGuardianEnrollment (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/guardian/enrollments/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type GuardianEnrollmentsDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] NoContent
 
---------------------------------------------------------------------------------
--- GET /api/v2/guardian/factors/sms/templates
-
-data Template
-  = Template
-  { enrollmentMessage   :: Text
-  , verificationMessage :: Text
-  } deriving (Generic, Show)
-
-instance FromJSON Template where
-  parseJSON =
-    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
-
-instance ToJSON Template where
-  toJSON =
-    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
-
-runGetGuardianTemplate
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> m (Auth0Response Template)
-runGetGuardianTemplate (TokenAuth tenant accessToken) =
-  let api = API Get "/api/v2/guardian/factors/sms/templates"
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
-
---------------------------------------------------------------------------------
--- PUT /api/v2/guardian/factors/sms/templates
-
-runUpdateGuardianTemplate
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Template -> m (Auth0Response Template)
-runUpdateGuardianTemplate (TokenAuth tenant accessToken) o =
-  let api = API Put "/api/v2/guardian/factors/sms/templates"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
-
---------------------------------------------------------------------------------
--- GET /api/v2/guardian/factors/push-notification/providers/sns
-
-data PushNotification
-  = PushNotification
-  { awsAccessKeyId                :: Maybe Text
-  , awsSecretAccessKey            :: Maybe Text
-  , awsRegion                     :: Maybe Text
-  , snsApnsPlatformApplicationArn :: Maybe Text
-  , snsGcmPlatformApplicationArn  :: Maybe Text
-  } deriving (Generic, Show)
-
-instance FromJSON PushNotification where
-  parseJSON =
-    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
-
-runGetGuardianPushNotification
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> m (Auth0Response PushNotification)
-runGetGuardianPushNotification (TokenAuth tenant accessToken) =
-  let api = API Get "/api/v2/guardian/factors/push-notifications/providers/sns"
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+guardianEnrollmentsDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- TODO: Twilio
@@ -161,26 +191,49 @@ instance FromJSON GuardianEnrollmentTicketResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateGuardianEnrollmentTicket
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> GuardianEnrollmentTicket -> m (Auth0Response GuardianEnrollmentTicketResponse)
-runCreateGuardianEnrollmentTicket (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/guardian/encrollments/ticket"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type GuardianEnrollmentTicketCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] GuardianEnrollmentTicket
+  :> Post '[JSON] GuardianEnrollmentTicketResponse
+
+guardianEnrollmentTicketCreate ::
+     AccessToken
+  -> GuardianEnrollmentTicket
+  -> ClientM GuardianEnrollmentTicketResponse
 
 --------------------------------------------------------------------------------
--- PUT /api/v2/guardian/factors/{name}
 
-data GuardianFactorUpdate
-  = GuardianFactorUpdate
-  { enabled :: Bool
-  } deriving (Generic, Show)
+type GuardianFactorsApi
+  = "factors" :>
+    (
+         (GuardianFactorsGetApi :<|> GuardianFactorsUpdateApi :<|> GuardianPushNotificationGetApi)
+    :<|> ("sms" :> "templates" :> (GuardianFactorsSmsTemplatesGetApi :<|> GuardianFactorsSmsTemplatesUpdateApi))
+    )
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''GuardianFactorUpdate
+type GuardianEnrollmentsApi
+  = "enrollments" :>
+    (
+         (GuardianEnrollmentsGetApi :<|> GuardianEnrollmentsDeleteApi)
+    :<|> ("ticket" :> GuardianEnrollmentTicketCreateApi)
+    )
 
-runUpdateGuardianFactor
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> GuardianFactorUpdate -> m (Auth0Response GuardianFactorUpdate)
-runUpdateGuardianFactor (TokenAuth tenant accessToken) i o =
-  let api = API Put ("/api/v2/guardian/factors/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type GuardianApi
+  =  "api"
+  :> "v2"
+  :> "guardian"
+  :> (GuardianFactorsApi :<|> GuardianEnrollmentsApi)
+
+guardianFactorsApi :: Proxy GuardianFactorsApi
+guardianFactorsApi = Proxy
+
+guardianEnrollmentsApi :: Proxy GuardianEnrollmentsApi
+guardianEnrollmentsApi = Proxy
+
+guardianApi :: Proxy GuardianApi
+guardianApi = Proxy
+
+((guardianFactorsGet :<|> guardianFactorsUpdate :<|> guardianPushNotificationGet)
+       :<|> (guardianFactorsSmsTemplatesGet :<|> guardianFactorsSmsTemplatesUpdate))
+  :<|> ((guardianEnrollmentsGet :<|> guardianEnrollmentsDelete)
+       :<|> guardianEnrollmentTicketCreate)
+  = client guardianApi

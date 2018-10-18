@@ -1,41 +1,35 @@
 module Auth0.Authentication.Login where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
-import Data.Map
+--import Data.Map
+import Data.Proxy
 import Data.Text
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
--- GET /authorize
+type LoginApi
+  = "authorize"
+  :> QueryParam' '[Required] "response_type" ResponseType
+  :> QueryParam' '[Required] "client_id" Text
+  :> QueryParam "connection" Text
+  :> QueryParam' '[Required]  "redirect_uri" Text
+  :> QueryParam "state" Text
+  -- :> QueryParams "additional" (Map Text Text)
+  :> Get '[JSON] NoContent
 
-data Login
-  = Login
-  { responseType         :: ResponseType
-  , clientId             :: ClientId
-  , connection           :: Maybe Text
-  , redirectUri          :: Text
-  , state                :: Maybe Text
-  , additionalParameters :: Maybe (Map Text Text)
-  } deriving (Show)
+loginApi :: Proxy LoginApi
+loginApi = Proxy
 
-instance ToRequest Login where
-  toRequest (Login a b c d e f) =
-    [ toField "response_type" a
-    , toField "client_id" b
-    , toField "connection" c
-    , toField "redirect_uri" d
-    , toField "state" e
-    ] ++ case f of
-           Nothing -> []
-           Just f' -> fmap (\(k, v) -> toField k (Just v)) (toList f')
+login ::
+     ResponseType
+  -> Text
+  -> Maybe Text
+  -> Text
+  -> Maybe Text
+  -- -> [Map Text Text]
+  -> ClientM NoContent
 
-runLogin
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> Login -> m (Auth0Response ())
-runLogin (Auth tenant) o =
-  let api = API Get "/authorize"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) Nothing
+login = client loginApi

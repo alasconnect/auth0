@@ -1,34 +1,15 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Grants where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/grants
-
--- Request
-
-data Grant
-  = Grant
-  { userId :: Text
-  } deriving (Show)
-
-instance ToRequest Grant where
-  toRequest (Grant a) =
-    [ toField "user_id" a ]
 
 -- Response
 
@@ -45,19 +26,41 @@ instance FromJSON GrantResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetGrants
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Grant -> m (Auth0Response [GrantResponse])
-runGetGrants (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/grants"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/grants
+
+type GrantGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam' '[Required] "user_id" Text
+  :> Get '[JSON] [GrantResponse]
+
+grantGet ::
+     AccessToken
+  -> Text
+  -> ClientM [GrantResponse]
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/grants/{id}
 
-runDeleteGrant
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> Grant -> m (Auth0Response ())
-runDeleteGrant (TokenAuth tenant accessToken) i o =
-  let api = API Delete ("/api/v2/grants/" <> encodeUtf8 i)
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type GrantDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] NoContent
+
+grantDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
+
+--------------------------------------------------------------------------------
+
+type GrantApi
+  =  "api"
+  :> "v2"
+  :> "grants"
+  :> (GrantGetApi :<|> GrantDeleteApi)
+
+grantApi :: Proxy GrantApi
+grantApi = Proxy
+
+grantGet :<|> grantDelete = client grantApi

@@ -1,38 +1,42 @@
 module Auth0.Management.UsersByEmail where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
-import Data.Aeson (FromJSON)
+import Data.Aeson
+import Data.Proxy
 import Data.Text
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Management.Users (UserResponse)
-import Auth0.Request
 import Auth0.Types
+import Auth0.Management.Users (UserResponse)
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/users-by-email
 
--- Request
+type UsersByEmailGetApi appMd userMd
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Text
+  :> QueryParam' '[Required]  "email" Text
+  :> Get '[JSON] [UserResponse appMd userMd]
 
-data UsersByEmail
-  = UsersByEmail
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Text
-  , email         :: Text
-  } deriving (Show)
+usersByEmailGet :: (FromJSON appMd, ToJSON appMd, FromJSON userMd, ToJSON userMd)
+  => AccessToken
+  -> Maybe Text
+  -> Maybe Text
+  -> Text
+  -> ClientM [UserResponse appMd userMd]
 
-instance ToRequest UsersByEmail where
-  toRequest (UsersByEmail a b c) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    , toField "email" c
-    ]
+--------------------------------------------------------------------------------
 
-runGetUsersByEmail
-  :: (MonadIO m, MonadThrow m, FromJSON appMd, FromJSON userMd)
-  => TokenAuth -> UsersByEmail -> m (Auth0Response [UserResponse appMd userMd])
-runGetUsersByEmail (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/users-by-email"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type UsersByEmailApi appMd userMd
+  = "api"
+  :> "v2"
+  :> "users-by-email"
+  :> UsersByEmailGetApi appMd userMd
+
+usersByEmailApi :: Proxy (UsersByEmailApi appMd userMd)
+usersByEmailApi = Proxy
+
+usersByEmailGet = client usersByEmailApi

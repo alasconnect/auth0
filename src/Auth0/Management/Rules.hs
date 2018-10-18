@@ -1,41 +1,15 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Rules where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/rules
-
--- Request
-
-data Rule
-  = Rule
-  { enabled       :: Maybe Bool
-  , fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  } deriving (Show)
-
-instance ToRequest Rule where
-  toRequest (Rule a b c) =
-    [ toField "enabled" a
-    , toField "fields" b
-    , toField "include_fields" c
-    ]
-
--- Response
 
 data RuleResponse
   = RuleResponse
@@ -51,12 +25,22 @@ instance FromJSON RuleResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetRules
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Rule -> m (Auth0Response [RuleResponse])
-runGetRules (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/rules"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/rules
+
+type RulesGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam "enabled" Bool
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Bool
+  :> Get '[JSON] [RuleResponse]
+
+rulesGet ::
+     AccessToken
+  -> Maybe Bool
+  -> Maybe Text
+  -> Maybe Bool
+  -> ClientM [RuleResponse]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/rules
@@ -73,55 +57,82 @@ instance ToJSON RuleCreate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateRule
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> RuleCreate -> m (Auth0Response RuleResponse)
-runCreateRule (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/rules"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type RuleCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] RuleCreate
+  :> Post '[JSON] RuleResponse
+
+ruleCreate ::
+     AccessToken
+  -> RuleCreate
+  -> ClientM RuleResponse
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/rules/{id}
 
--- Request
+type RuleGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Bool
+  :> Get '[JSON] [RuleResponse]
 
-data RuleGet
-  = RuleGet
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  } deriving (Show)
-
-instance ToRequest RuleGet where
-  toRequest (RuleGet a b) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    ]
-
-runGetRule
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> RuleGet -> m (Auth0Response RuleResponse)
-runGetRule (TokenAuth tenant accessToken) i o =
-  let api = API Get ("/api/v2/rules/" <> encodeUtf8 i)
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+ruleGet ::
+     AccessToken
+  -> Text
+  -> Maybe Text
+  -> Maybe Bool
+  -> ClientM [RuleResponse]
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/rules/{id}
 
-runDeleteRule
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteRule (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/rules/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type RuleDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] NoContent
+
+ruleDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/rules/{id}
 
 type RuleUpdate = RuleCreate
 
-runUpdateRule
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> RuleUpdate -> m (Auth0Response RuleResponse)
-runUpdateRule (TokenAuth tenant accessToken) i o =
-  let api = API Update ("/api/v2/rules/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type RuleUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> ReqBody '[JSON] RuleUpdate
+  :> Patch '[JSON] RuleResponse
+
+ruleUpdate ::
+     AccessToken
+  -> Text
+  -> RuleUpdate
+  -> ClientM RuleResponse
+
+--------------------------------------------------------------------------------
+
+type RulesApi
+  =  "api"
+  :> "v2"
+  :> "rules"
+  :> (    RulesGetApi
+     :<|> RuleCreateApi
+     :<|> RuleGetApi
+     :<|> RuleDeleteApi
+     :<|> RuleUpdateApi
+     )
+
+rulesApi :: Proxy RulesApi
+rulesApi = Proxy
+
+rulesGet
+  :<|> ruleCreate
+  :<|> ruleGet
+  :<|> ruleDelete
+  :<|> ruleUpdate
+  = client rulesApi

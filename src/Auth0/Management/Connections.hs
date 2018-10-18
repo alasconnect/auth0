@@ -1,46 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Connections where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson hiding (Options)
 import Data.Map
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
-import Auth0.Types
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/connections
-
--- Request
-
-data Connection
-  = Connection
-  { perPage       :: Int
-  , page          :: Int
-  , strategy      :: Map Text Text
-  , name          :: Text
-  , fields        :: Text
-  , includeFields :: Bool
-  } deriving (Show)
-
-instance ToRequest Connection where
-  toRequest (Connection a b c d e f) =
-    [ toField "per_page" a
-    , toField "page" b
-    ] ++ flattenMap "strategy" c ++
-    [ toField "name" d
-    , toField "fields" e
-    , toField "include_fields" f
-    ]
 
 -- Response
 
@@ -60,12 +28,28 @@ instance FromJSON ConnectionResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetConnections
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Connection -> m (Auth0Response [ConnectionResponse])
-runGetConnections (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/connections"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/connections
+
+type ConnectionApi
+  =  Header' '[Required] "Authorization" Text
+  :> QueryParam' '[Required] "per_page" Int
+  :> QueryParam' '[Required] "page" Int
+  :> QueryParams "strategy" Text
+  :> QueryParam' '[Required] "name" Text
+  :> QueryParam' '[Required] "fields" Text
+  :> QueryParam' '[Required] "include_fields" Bool
+  :> Get '[JSON] [ConnectionResponse]
+
+connection ::
+     Text
+  -> Int
+  -> Int
+  -> [Text]
+  -> Text
+  -> Text
+  -> Bool
+  -> ClientM [ConnectionResponse]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/connections
@@ -100,44 +84,45 @@ instance ToJSON ConnectionCreate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateConnection
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> ConnectionCreate -> m (Auth0Response ConnectionResponse)
-runCreateConnection (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/connections"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ConnectionCreateApi
+  =  Header' '[Required] "Authorization" Text
+  :> ReqBody '[JSON] ConnectionCreate
+  :> Post '[JSON] ConnectionResponse
+
+connectionCreate ::
+     Text
+  -> ConnectionCreate
+  -> ClientM ConnectionResponse
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/connections/{id}
 
-data ConnectionGet
-  = ConnectionGet
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Bool
-  } deriving (Show)
+type ConnectionGetApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "connection_id" Text
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Bool
+  :> Get '[JSON] ConnectionResponse
 
-instance ToRequest ConnectionGet where
-  toRequest (ConnectionGet a b) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    ]
-
-runGetConnection
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> ConnectionGet -> m (Auth0Response ConnectionResponse)
-runGetConnection (TokenAuth tenant accessToken) i o =
-  let api = API Get ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+connectionGet ::
+     Text
+  -> Text
+  -> Maybe Text
+  -> Maybe Bool
+  -> ClientM ConnectionResponse
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/connections/{id}
 
-runDeleteConnection
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteConnection (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ConnectionDeleteApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "connection_id" Text
+  :> Delete '[JSON] NoContent
+
+connectionDelete ::
+     Text
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/connections/{id}
@@ -154,28 +139,56 @@ instance ToJSON ConnectionUpdate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runUpdateConnection
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ConnectionResponse)
-runUpdateConnection (TokenAuth tenant accessToken) i =
-  let api = API Update ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ConnectionUpdateApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "connection_id" Text
+  :> ReqBody '[JSON] ConnectionUpdate
+  :> Patch '[JSON] ConnectionResponse
+
+connectionUpdate ::
+     Text
+  -> Text
+  -> ConnectionUpdate
+  -> ClientM ConnectionResponse
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/connections/{id}/users
 
-data ConnectionUserDelete
-  = ConnectionUserDelete
-  { email :: Maybe Text
-  } deriving (Show)
+type ConnectionDeleteUserApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "connection_id" Text
+  :> "users"
+  :> QueryParam "email" Text
+  :> Delete '[JSON] ConnectionResponse
 
-instance ToRequest ConnectionUserDelete where
-  toRequest (ConnectionUserDelete a) =
-    [ toField "email" a ]
+connectionDeleteUser ::
+     Text
+  -> Text
+  -> Maybe Text
+  -> ClientM ConnectionResponse
 
-runDeleteConnectionUser
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> ConnectionUserDelete -> m (Auth0Response ConnectionResponse)
-runDeleteConnectionUser (TokenAuth tenant accessToken) i o =
-  let api = API Update ("/api/v2/connections/" <> encodeUtf8 i)
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+
+type ConnectionsApi
+  =  "api"
+  :> "v2"
+  :> "connections"
+  :> (
+          ConnectionApi
+     :<|> ConnectionCreateApi
+     :<|> ConnectionGetApi
+     :<|> ConnectionDeleteApi
+     :<|> ConnectionUpdateApi
+     :<|> ConnectionDeleteUserApi
+     )
+
+connectionsApi :: Proxy ConnectionsApi
+connectionsApi = Proxy
+
+connection
+  :<|> connectionCreate
+  :<|> connectionGet
+  :<|> connectionDelete
+  :<|> connectionUpdate
+  :<|> connectionDeleteUser
+  = client connectionsApi

@@ -1,4 +1,5 @@
+shell.sh
 dist
 dist-newstyle
 .env
-
+.ghc.environment.*

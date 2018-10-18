@@ -1,40 +1,18 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-
 module Auth0.Management.Tenants where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Aeson.TH
+import Data.Proxy
 import Data.Text
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/tenants/settings
-
--- Request
-
-data TenantSettings
-  = TenantSettings
-  { fields        :: Maybe Text
-  , includeFields :: Maybe Text
-  } deriving (Show)
-
-instance ToRequest TenantSettings where
-  toRequest (TenantSettings a b) =
-    [ toField "fields" a
-    , toField "include_fields" b
-    ]
-
--- Response
 
 data ChangePassword
   = ChangePassword
@@ -42,7 +20,13 @@ data ChangePassword
   , html    :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''ChangePassword
+instance ToJSON ChangePassword where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance FromJSON ChangePassword where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data GuardianMfaPage
   = GuardianMfaPage
@@ -50,7 +34,13 @@ data GuardianMfaPage
   , html    :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''GuardianMfaPage
+instance ToJSON GuardianMfaPage where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance FromJSON GuardianMfaPage  where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data ErrorPage
   = ErrorPage
@@ -59,7 +49,13 @@ data ErrorPage
   , url         :: Maybe Text
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''ErrorPage
+instance ToJSON ErrorPage where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance FromJSON ErrorPage where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data Flags
   = Flags
@@ -70,7 +66,13 @@ data Flags
   , enablePipeline2         :: Maybe Bool
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''Flags
+instance ToJSON Flags where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+instance FromJSON Flags where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
 data TenantSettingResponse
   = TenantSettingResponse
@@ -88,23 +90,55 @@ data TenantSettingResponse
   , sessionLifetime   :: Maybe Double
   } deriving (Generic, Show)
 
-deriveJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' } ''TenantSettingResponse
+instance ToJSON TenantSettingResponse where
+  toJSON =
+    genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetTenantSettings
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> TenantSettings -> m (Auth0Response TenantSettingResponse)
-runGetTenantSettings (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/tenants/settings"
-  in execRequest tenant api (Just o) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+instance FromJSON TenantSettingResponse where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
+type TenantSettingsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> QueryParam "fields" Text
+  :> QueryParam "include_fields" Text
+  :> Get '[JSON] TenantSettingResponse
+
+tenantSettingsGet ::
+     AccessToken
+  -> Maybe Text
+  -> Maybe Text
+  -> ClientM TenantSettingResponse
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/tenants/settings
 
 type TenantSettingsUpdate = TenantSettingResponse
 
-runUpdateTenantSettings
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> TenantSettingsUpdate -> m (Auth0Response TenantSettingResponse)
-runUpdateTenantSettings (TokenAuth tenant accessToken) o =
-  let api = API Update "/api/v2/tenants/settings"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type TenantSettingsUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] TenantSettingsUpdate
+  :> Patch '[JSON] TenantSettingResponse
+
+tenantSettingsUpdate ::
+     AccessToken
+  -> TenantSettingsUpdate
+  -> ClientM TenantSettingResponse
+
+--------------------------------------------------------------------------------
+
+type TenantSettingsApi
+  =  "api"
+  :> "v2"
+  :> "tenants"
+  :> "settings"
+  :> (    TenantSettingsGetApi
+     :<|> TenantSettingsUpdateApi
+     )
+
+tenantSettingsApi :: Proxy TenantSettingsApi
+tenantSettingsApi = Proxy
+
+tenantSettingsGet
+  :<|> tenantSettingsUpdate
+  = client tenantSettingsApi

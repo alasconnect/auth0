@@ -1,19 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Jobs where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Map
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
@@ -39,32 +34,40 @@ instance FromJSON JobResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
     where
-      f "text" = "jtype"
+      f "type" = "jtype"
       f v      = camelTo2 '_' v
 
 instance ToJSON JobResponse where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
     where
-      f "jtext" = "type"
+      f "jtype" = "type"
       f v       = camelTo2 '_' v
 
-runGetJob
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response JobResponse)
-runGetJob (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/jobs/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type JobsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Get '[JSON] JobResponse
+
+jobsGet ::
+     AccessToken
+  -> Text
+  -> ClientM JobResponse
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/jobs/{id}/errors
 
-runGetJobErrors
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runGetJobErrors (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/jobs/" <> encodeUtf8 i <> "/errors")
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+-- TODO: This looks like it should return something
+type JobsErrorsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> "errors"
+  :> Get '[JSON] NoContent
+
+jobsErrorsGet ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- GET /api/v2/jobs/{id}/results
@@ -81,12 +84,16 @@ instance FromJSON JobResultsResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetJobResults
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response JobResultsResponse)
-runGetJobResults (TokenAuth tenant accessToken) i =
-  let api = API Get ("/api/v2/jobs/" <> encodeUtf8 i <> "/results")
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type JobsResultsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> "results"
+  :> Get '[JSON] JobResultsResponse
+
+jobsResultsGet ::
+     AccessToken
+  -> Text
+  -> ClientM JobResultsResponse
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/jobs/users-exports
@@ -103,12 +110,15 @@ instance ToJSON JobExportCreate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateJobExport
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> JobExportCreate -> m (Auth0Response JobResponse)
-runCreateJobExport (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/jobs/users-exports"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type JobsUsersExportsCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] JobExportCreate
+  :> Post '[JSON] JobResponse
+
+jobsUsersExportsCreate ::
+     AccessToken
+  -> JobExportCreate
+  -> ClientM JobResponse
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/jobs/users-imports
@@ -139,11 +149,40 @@ data JobVerificationEmailResponse
 
 instance FromJSON JobVerificationEmailResponse where
   parseJSON =
-    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = f }
+    where
+      f "type" = "jtype"
+      f v      = camelTo2 '_' v
 
-runCreateJobVerificationEmail
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> JobVerificationEmail -> m (Auth0Response JobVerificationEmailResponse)
-runCreateJobVerificationEmail (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/jobs/verification-email"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type JobsVerificationEmailCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] JobVerificationEmail
+  :> Post '[JSON] JobVerificationEmailResponse
+
+jobsVerificationEmailCreate ::
+     AccessToken
+  -> JobVerificationEmail
+  -> ClientM JobVerificationEmailResponse
+
+--------------------------------------------------------------------------------
+
+type JobsApi
+  =  "api"
+  :> "v2"
+  :> "jobs"
+  :> (    JobsGetApi
+     :<|> JobsErrorsGetApi
+     :<|> JobsResultsGetApi
+     :<|> JobsUsersExportsCreateApi
+     :<|> JobsVerificationEmailCreateApi
+     )
+
+jobsApi :: Proxy JobsApi
+jobsApi = Proxy
+
+jobsGet
+  :<|> jobsErrorsGet
+  :<|> jobsResultsGet
+  :<|> jobsUsersExportsCreate
+  :<|> jobsVerificationEmailCreate
+  = client jobsApi

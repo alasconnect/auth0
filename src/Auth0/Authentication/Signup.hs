@@ -1,17 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Authentication.Signup where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Map
+import Data.Proxy
 import Data.Text
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
@@ -41,9 +38,17 @@ instance FromJSON SignupResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runSignup
-  :: (MonadIO m, MonadThrow m)
-  => Auth -> Signup -> m (Auth0Response SignupResponse)
-runSignup (Auth tenant) o =
-  let api = API Post "/dbconnections/signup"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) Nothing
+type SignupApi
+  =  "dbconnections"
+  :> "signup"
+  :> ReqBody '[JSON] Signup
+  :> Post '[JSON] SignupResponse
+
+signupApi :: Proxy SignupApi
+signupApi = Proxy
+
+signup ::
+     Signup
+  -> ClientM SignupResponse
+
+signup = client signupApi

@@ -1,25 +1,15 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.RulesConfigs where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/rules-configs
-
--- Response
 
 data RuleConfigResponse
   = RuleConfigResponse
@@ -28,22 +18,29 @@ data RuleConfigResponse
 
 instance FromJSON RuleConfigResponse
 
-runGetRuleConfigs
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> m (Auth0Response [RuleConfigResponse])
-runGetRuleConfigs (TokenAuth tenant accessToken) =
-  let api = API Get "/api/v2/rules-configs"
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/rules-configs
+
+type RulesConfigsGetApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Get '[JSON] [RuleConfigResponse]
+
+rulesConfigsGet ::
+     AccessToken
+  -> ClientM [RuleConfigResponse]
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/rules-configs/{key}
 
-runDeleteRuleConfig
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteRuleConfig (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/rules-configs/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type RulesConfigsDeleteApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> Delete '[JSON] NoContent
+
+rulesConfigsDelete ::
+     AccessToken
+  -> Text
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PUT /api/v2/rules-configs/{key}
@@ -63,9 +60,33 @@ data RuleConfigSetResponse
 
 instance FromJSON RuleConfigSetResponse
 
-runSetRuleConfig
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> RuleConfigSet -> m (Auth0Response RuleConfigSetResponse)
-runSetRuleConfig (TokenAuth tenant accessToken) i o =
-  let api = API Put ("/api/v2/rules-configs/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type RulesConfigsUpdateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> Capture "id" Text
+  :> ReqBody '[JSON] RuleConfigSet
+  :> Put '[JSON] RuleConfigSetResponse
+
+rulesConfigsUpdate ::
+     AccessToken
+  -> Text
+  -> RuleConfigSet
+  -> ClientM RuleConfigSetResponse
+
+--------------------------------------------------------------------------------
+
+type RulesConfigsApi
+  =  "api"
+  :> "v2"
+  :> "rules-configs"
+  :> (    RulesConfigsGetApi
+     :<|> RulesConfigsDeleteApi
+     :<|> RulesConfigsUpdateApi
+     )
+
+rulesConfigsApi :: Proxy RulesConfigsApi
+rulesConfigsApi = Proxy
+
+rulesConfigsGet
+  :<|> rulesConfigsDelete
+  :<|> rulesConfigsUpdate
+  = client rulesConfigsApi

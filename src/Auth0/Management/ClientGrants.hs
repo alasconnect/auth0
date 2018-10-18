@@ -1,38 +1,16 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.ClientGrants where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.Map
-import Data.Monoid ((<>))
+import Data.Proxy
 import Data.Text
-import Data.Text.Encoding (encodeUtf8)
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- GET /api/v2/client-grants
-
--- Request
-
-data ClientGrant
-  = ClientGrant
-  { audience :: Maybe Text
-  , clientId :: Maybe ClientId
-  } deriving (Show)
-
-instance ToRequest ClientGrant where
-  toRequest (ClientGrant a b) =
-    [ toField "audience" a
-    , toField "client_id" b
-    ]
 
 -- Response
 
@@ -48,12 +26,20 @@ instance FromJSON ClientGrantResponse where
   parseJSON =
     genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runGetClientGrants
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Maybe ClientGrant -> m (Auth0Response [ClientGrantResponse])
-runGetClientGrants (TokenAuth tenant accessToken) o =
-  let api = API Get "/api/v2/client-grants"
-  in execRequest tenant api o (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+--------------------------------------------------------------------------------
+-- GET /api/v2/client-grants
+
+type ClientGrantGetApi
+  =  Header' '[Required] "Authorization" Text
+  :> QueryParam "audience" Text
+  :> QueryParam "client_id" ClientId
+  :> Get '[JSON] [ClientGrantResponse]
+
+clientGrantGet ::
+     Text
+  -> Maybe Text
+  -> Maybe ClientId
+  -> ClientM [ClientGrantResponse]
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/client-grants
@@ -69,22 +55,28 @@ instance ToJSON ClientGrantCreate where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateClientGrant
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> ClientGrantCreate -> m (Auth0Response ())
-runCreateClientGrant (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/client-grants"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ClientGrantCreateApi
+  =  Header' '[Required] "Authorization" Text
+  :> ReqBody '[JSON] ClientGrantCreate
+  :> Post '[JSON] NoContent
+
+clientGrantCreate ::
+     Text
+  -> ClientGrantCreate
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- DELETE /api/v2/client-grants/{id}
 
-runDeleteClientGrant
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> m (Auth0Response ())
-runDeleteClientGrant (TokenAuth tenant accessToken) i =
-  let api = API Delete ("/api/v2/client-grants/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Nothing :: Maybe ()) (Just [mkAuthHeader accessToken])
+type ClientGrantDeleteApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "client_id" ClientId
+  :> Delete '[JSON] NoContent
+
+clientGrantDelete ::
+     Text
+  -> ClientId
+  -> ClientM NoContent
 
 --------------------------------------------------------------------------------
 -- PATCH /api/v2/client-grants/{id}
@@ -96,9 +88,35 @@ data ClientGrantUpdate
 
 instance ToJSON ClientGrantUpdate
 
-runUpdateClientGrant
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> Text -> ClientGrantUpdate -> m (Auth0Response ClientGrantResponse)
-runUpdateClientGrant (TokenAuth tenant accessToken) i o =
-  let api = API Update ("/api/v2/client-grants/" <> encodeUtf8 i)
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type ClientGrantUpdateApi
+  =  Header' '[Required] "Authorization" Text
+  :> Capture "client_id" ClientId
+  :> ReqBody '[JSON] ClientGrantUpdate
+  :> Put '[JSON] NoContent
+
+clientGrantUpdate ::
+     Text
+  -> ClientId
+  -> ClientGrantUpdate
+  -> ClientM NoContent
+
+--------------------------------------------------------------------------------
+
+type ClientGrantApi
+  =  "api"
+  :> "v2"
+  :> "client-grants"
+  :> (    ClientGrantGetApi
+     :<|> ClientGrantCreateApi
+     :<|> ClientGrantDeleteApi
+     :<|> ClientGrantUpdateApi
+     )
+
+clientGrantApi :: Proxy ClientGrantApi
+clientGrantApi = Proxy
+
+clientGrantGet
+  :<|> clientGrantCreate
+  :<|> clientGrantDelete
+  :<|> clientGrantUpdate
+  = client clientGrantApi

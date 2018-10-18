@@ -1,23 +1,27 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-
 module Auth0.Management.Tickets where
 
 --------------------------------------------------------------------------------
-import Control.Monad.Catch (MonadThrow)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
+import Data.Proxy
 import Data.Text
 import GHC.Generics
+import Servant.API
+import Servant.Client
 --------------------------------------------------------------------------------
-import Auth0.Request
 import Auth0.Types
 --------------------------------------------------------------------------------
 
+data TicketResponse
+  = TicketResponse
+  { ticket :: Text
+  } deriving (Generic, Show)
+
+instance FromJSON TicketResponse where
+  parseJSON =
+    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
 --------------------------------------------------------------------------------
 -- POST /api/v2/tickets/email-verification
-
--- Request
 
 data TicketEmailVerification
   = TicketEmailVerification
@@ -30,23 +34,15 @@ instance ToJSON TicketEmailVerification where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
--- Response
+type TicketEmailVerificationCreateApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] TicketEmailVerification
+  :> Post '[JSON] TicketResponse
 
-data TicketResponse
-  = TicketResponse
-  { ticket :: Text
-  } deriving (Generic, Show)
-
-instance FromJSON TicketResponse where
-  parseJSON =
-    genericParseJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
-
-runCreateTicketEmailVerification
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> TicketEmailVerification -> m (Auth0Response TicketResponse)
-runCreateTicketEmailVerification (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/tickets/email-verification"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+ticketEmailVerifcationCreate ::
+     AccessToken
+  -> TicketEmailVerification
+  -> ClientM TicketResponse
 
 --------------------------------------------------------------------------------
 -- POST /api/v2/tickets/password-change
@@ -65,9 +61,29 @@ instance ToJSON TicketChangePassword where
   toJSON =
     genericToJSON defaultOptions { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
 
-runCreateTicketChangePassword
-  :: (MonadIO m, MonadThrow m)
-  => TokenAuth -> TicketChangePassword -> m (Auth0Response TicketResponse)
-runCreateTicketChangePassword (TokenAuth tenant accessToken) o =
-  let api = API Post "/api/v2/tickets/password-change"
-  in execRequest tenant api (Nothing :: Maybe ()) (Just o) (Just [mkAuthHeader accessToken])
+type TicketPasswordChangeApi
+  =  Header' '[Required] "Authorization" AccessToken
+  :> ReqBody '[JSON] TicketChangePassword
+  :> Post '[JSON] TicketResponse
+
+ticketPasswordChange ::
+     AccessToken
+  -> TicketChangePassword
+  -> ClientM TicketResponse
+
+--------------------------------------------------------------------------------
+
+type TicketsApi
+  =  "api"
+  :> "v2"
+  :> "tickets"
+  :> (    TicketEmailVerificationCreateApi
+     :<|> TicketPasswordChangeApi
+     )
+
+ticketsApi :: Proxy TicketsApi
+ticketsApi = Proxy
+
+ticketEmailVerifcationCreate
+  :<|> ticketPasswordChange
+  = client ticketsApi
